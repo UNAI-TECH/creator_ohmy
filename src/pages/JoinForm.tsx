@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Send, User, Mail, FileText, Globe, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import { supabase } from '../lib/supabaseClient';
 
 interface JoinFormProps {
   onBack: () => void;
-  onSubmitSuccess: () => void;
+  onSubmitSuccess: (email: string) => void;
 }
 
 export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
@@ -23,11 +23,27 @@ export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
     setError('');
 
     try {
-      // Connect to the backend API we created earlier
-      await axios.post('http://localhost:3001/api/creator/requests', formData);
-      onSubmitSuccess();
+      const { error: insertError } = await supabase
+        .from('creator_requests')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          bio: formData.bio,
+          portfolio_url: formData.portfolioUrl || null,
+        });
+
+      if (insertError) {
+        if (insertError.message.includes('duplicate')) {
+          setError('An application with this email already exists.');
+        } else {
+          setError(insertError.message);
+        }
+        return;
+      }
+
+      onSubmitSuccess(formData.email);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
