@@ -60,6 +60,11 @@ export default function Analytics() {
       }
     };
     fetchData();
+
+    const sub = contentService.subscribeToMyPostUpdates(() => {
+      fetchData();
+    });
+    return () => { sub.unsubscribe(); };
   }, []);
 
   // Build chart data

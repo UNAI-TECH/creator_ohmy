@@ -47,7 +47,13 @@ export default function Content() {
     }
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { 
+    fetchPosts(); 
+    const sub = contentService.subscribeToMyPostUpdates(() => {
+      fetchPosts();
+    });
+    return () => { sub.unsubscribe(); };
+  }, []);
 
   const handleDelete = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this content? This cannot be undone.')) return;

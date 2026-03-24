@@ -1,54 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Filter, Search, Globe, ChevronDown, 
-  Plus, Subtitles as SubtitlesIcon, Settings,
-  Edit2, Trash2, MoreVertical, FileText
+  Plus, Settings, Edit2, Trash2, FileText
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { contentService, CreatorPost } from '../services/contentService';
 
 const availableLanguages = ['All Languages', 'English', 'Spanish', 'Hindi', 'French', 'German', 'Japanese'];
 
-const subtitlesData = [
-  {
-    id: 1,
-    title: 'Building a Modern Dashboard with React & Tailwind CSS',
-    thumbnail: 'https://picsum.photos/seed/vid1/120/68',
-    date: 'Oct 24, 2023',
-    languages: [
-      { name: 'English (video language)', status: 'Published', type: 'Creator', date: 'Oct 24, 2023' },
-      { name: 'Spanish', status: 'Published', type: 'Community', date: 'Oct 25, 2023' },
-      { name: 'Hindi', status: 'Draft', type: 'Creator', date: 'Oct 26, 2023' }
-    ]
-  },
-  {
-    id: 2,
-    title: '10 UI Design Tips for Better Dashboards',
-    thumbnail: 'https://picsum.photos/seed/vid2/120/68',
-    date: 'Oct 20, 2023',
-    languages: [
-      { name: 'English (Automatic)', status: 'Published', type: 'Automatic', date: 'Oct 20, 2023' },
-      { name: 'French', status: 'Published', type: 'Creator', date: 'Oct 22, 2023' }
-    ]
-  },
-  {
-    id: 3,
-    title: 'How to use AI to generate code faster',
-    thumbnail: 'https://picsum.photos/seed/vid3/120/68',
-    date: 'Oct 15, 2023',
-    languages: [
-      { name: 'English (video language)', status: 'Published', type: 'Creator', date: 'Oct 15, 2023' }
-    ]
-  }
-];
-
 export default function Subtitles() {
   const [selectedLanguage, setSelectedLanguage] = useState('All Languages');
-  const [expandedVideo, setExpandedVideo] = useState<number | null>(1);
+  const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [videos, setVideos] = useState<CreatorPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleExpand = (id: number) => {
+  const fetchVideos = async () => {
+    try {
+      const allPosts = await contentService.getMyPosts();
+      setVideos(allPosts.filter(p => p.type === 'video'));
+    } catch (e) {
+      console.warn('Failed to fetch videos:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+    const sub = contentService.subscribeToMyPostUpdates(() => {
+      fetchVideos();
+    });
+    return () => { sub?.unsubscribe(); };
+  }, []);
+
+  const toggleExpand = (id: string) => {
     setExpandedVideo(expandedVideo === id ? null : id);
   };
+
+  const filteredVideos = videos.filter(v => v.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="max-w-[1200px] mx-auto pb-12 w-full animate-in fade-in duration-300">
@@ -108,7 +98,9 @@ export default function Subtitles() {
 
         {/* Video Rows */}
         <div className="divide-y divide-gray-100">
-          {subtitlesData.map((video) => (
+          {loading ? (
+             <div className="p-8 text-center text-gray-500 animate-pulse">Loading videos...</div>
+          ) : filteredVideos.length > 0 ? filteredVideos.map((video) => (
             <div key={video.id} className="flex flex-col transition-colors hover:bg-blue-50/30">
               
               {/* Main Video Row */}
@@ -121,25 +113,29 @@ export default function Subtitles() {
               >
                 <div className="col-span-8 sm:col-span-6 flex gap-4 pr-4">
                   <div className="relative w-24 sm:w-32 aspect-video rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-gray-100">
-                    <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
+                    {video.thumbnail ? (
+                      <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><Filter className="w-6 h-6 text-gray-300"/></div>
+                    )}
                   </div>
                   <div className="flex flex-col justify-center min-w-0">
                     <div className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
                       {video.title}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{video.date}</div>
+                    <div className="text-xs text-gray-500 mt-1">{new Date(video.created_at).toLocaleDateString()}</div>
                   </div>
                 </div>
                 
                 <div className="col-span-4 sm:col-span-3 flex items-center">
                   <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
                     <Globe className="w-3.5 h-3.5" />
-                    {video.languages.length}
+                    1
                   </div>
                 </div>
 
                 <div className="hidden sm:flex sm:col-span-3 items-center justify-end pr-4 text-sm text-gray-600 gap-4">
-                  <span>{video.date}</span>
+                  <span>{new Date(video.updated_at).toLocaleDateString()}</span>
                   <ChevronDown className={cn(
                     "w-5 h-5 text-gray-400 transition-transform duration-300",
                     expandedVideo === video.id ? "rotate-180 text-blue-600" : "group-hover:text-gray-900"
@@ -158,47 +154,28 @@ export default function Subtitles() {
                   </div>
                   
                   <div className="divide-y divide-gray-50">
-                    {video.languages.map((lang, index) => (
-                      <div key={index} className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-gray-50 transition-colors group/lang">
-                        <div className="col-span-3 pl-12 sm:pl-40 flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900">{lang.name}</span>
-                          {lang.type === 'Automatic' && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] uppercase font-bold tracking-wide">Auto</span>
-                          )}
-                        </div>
-                        <div className="col-span-3 flex items-center">
-                          <span className={cn(
-                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
-                            lang.status === 'Published' ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"
-                          )}>
-                            {lang.status}
-                          </span>
-                        </div>
-                        <div className="col-span-3 text-sm text-gray-600">
-                          {lang.date}
-                        </div>
-                        <div className="col-span-3 flex justify-end pr-4 gap-2 opacity-0 group-hover/lang:opacity-100 transition-opacity">
-                          {lang.status === 'Draft' ? (
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm">
-                              <Edit2 className="w-3.5 h-3.5" />
-                              Edit
-                            </button>
-                          ) : (
-                            <>
-                              <button className="p-1.5 hover:bg-gray-200 rounded text-gray-600 transition-colors tooltip" title="Edit">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button className="p-1.5 hover:bg-gray-200 rounded text-gray-600 transition-colors tooltip" title="Download">
-                                <FileText className="w-4 h-4" />
-                              </button>
-                              <button className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-gray-600 transition-colors tooltip" title="Delete">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                    <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-gray-50 transition-colors group/lang">
+                      <div className="col-span-3 pl-12 sm:pl-40 flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">English</span>
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] uppercase font-bold tracking-wide">Original</span>
                       </div>
-                    ))}
+                      <div className="col-span-3 flex items-center">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">
+                          Published
+                        </span>
+                      </div>
+                      <div className="col-span-3 text-sm text-gray-600">
+                        {new Date(video.created_at).toLocaleDateString()}
+                      </div>
+                      <div className="col-span-3 flex justify-end pr-4 gap-2 opacity-0 group-hover/lang:opacity-100 transition-opacity">
+                        <button className="p-1.5 hover:bg-gray-200 rounded text-gray-600 transition-colors tooltip" title="Edit">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 hover:bg-gray-200 rounded text-gray-600 transition-colors tooltip" title="Download">
+                          <FileText className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Add Language Button Row */}
@@ -207,12 +184,14 @@ export default function Subtitles() {
                       <Plus className="w-4 h-4 text-blue-600" />
                       Add Language
                     </button>
-                    <span className="text-xs text-gray-500">Reach a wider audience by adding more languages.</span>
+                    <span className="text-xs text-gray-500">Feature coming soon.</span>
                   </div>
                 </div>
               )}
             </div>
-          ))}
+          )) : (
+            <div className="p-12 text-center text-gray-500">No videos published yet.</div>
+          )}
         </div>
       </div>
     </div>

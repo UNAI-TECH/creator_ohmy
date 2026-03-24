@@ -61,17 +61,24 @@ export const contentService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    const now = new Date().toISOString();
+    const insertPayload: any = {
+      id: crypto.randomUUID(),
+      title: postData.title,
+      content: postData.content || '',
+      type: postData.type ? postData.type.toUpperCase() : 'BLOG',
+      authorId: user.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    // Only add optional fields if they have values
+    if (postData.category) insertPayload.category = postData.category;
+    if (postData.thumbnail) insertPayload.thumbnail = postData.thumbnail;
+    if (postData.video_duration) insertPayload.videoDuration = postData.video_duration;
+
     const { data, error } = await supabase
       .from('Post')
-      .insert({
-        title: postData.title,
-        content: postData.content,
-        type: postData.type ? postData.type.toUpperCase() : 'BLOG',
-        category: postData.category,
-        thumbnail: postData.thumbnail,
-        videoDuration: postData.video_duration,
-        authorId: user.id
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
