@@ -27,6 +27,7 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
         .from('creator_requests')
         .select('status, admin_message')
         .eq('email', applicantEmail)
+        .limit(1)
         .maybeSingle();
 
       if (error) {

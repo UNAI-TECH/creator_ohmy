@@ -62,11 +62,15 @@ export const contentService = {
     if (!user) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
-      .from('posts')
+      .from('Post')
       .insert({
-        ...postData,
-        author_id: user.id,
-        published: true,
+        title: postData.title,
+        content: postData.content,
+        type: postData.type ? postData.type.toUpperCase() : 'BLOG',
+        category: postData.category,
+        thumbnail: postData.thumbnail,
+        videoDuration: postData.video_duration,
+        authorId: user.id
       })
       .select()
       .single();
@@ -80,10 +84,10 @@ export const contentService = {
     if (!user) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
-      .from('posts')
-      .select('*, votes(vote_type), comments(id)')
-      .eq('author_id', user.id)
-      .order('created_at', { ascending: false });
+      .from('Post')
+      .select('*, Vote(type), Comment(id)')
+      .eq('authorId', user.id)
+      .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
@@ -91,17 +95,17 @@ export const contentService = {
       id: post.id,
       title: post.title,
       content: post.content,
-      type: post.type || 'blog',
+      type: post.type?.toLowerCase() || 'blog',
       category: post.category || 'General',
       thumbnail: post.thumbnail,
-      video_url: post.video_url,
-      video_duration: post.video_duration,
-      published: post.published,
-      created_at: post.created_at,
-      updated_at: post.updated_at,
-      vote_count: post.votes?.length || 0,
-      comment_count: post.comments?.length || 0,
-      visibility: post.published ? 'Public' : 'Draft',
+      video_url: null,
+      video_duration: post.videoDuration,
+      published: true,
+      created_at: post.createdAt,
+      updated_at: post.updatedAt,
+      vote_count: post.Vote?.length || 0,
+      comment_count: post.Comment?.length || 0,
+      visibility: 'Public',
     }));
   },
 
@@ -110,9 +114,9 @@ export const contentService = {
     if (!user) throw new Error('Not authenticated');
 
     const { data: posts, error } = await supabase
-      .from('posts')
-      .select('id, type, votes(vote_type), comments(id)')
-      .eq('author_id', user.id);
+      .from('Post')
+      .select('id, type, Vote(type), Comment(id)')
+      .eq('authorId', user.id);
 
     if (error) throw error;
 
@@ -121,25 +125,25 @@ export const contentService = {
     let totalComments = 0;
 
     allPosts.forEach((p: any) => {
-      totalVotes += p.votes?.length || 0;
-      totalComments += p.comments?.length || 0;
+        totalVotes += p.Vote?.length || 0;
+        totalComments += p.Comment?.length || 0;
     });
 
     // Get follower count
     const { count: followerCount } = await supabase
-      .from('follows')
+      .from('Follow')
       .select('id', { count: 'exact', head: true })
-      .eq('following_id', user.id);
+      .eq('followingId', user.id);
 
     return {
       totalPosts: allPosts.length,
-      totalViews: totalVotes, // Using votes as proxy for views since views column may not exist
+      totalViews: totalVotes, // proxy
       totalComments,
       totalVotes,
       totalFollowers: followerCount || 0,
-      blogCount: allPosts.filter((p: any) => p.type === 'blog').length,
-      newsCount: allPosts.filter((p: any) => p.type === 'news').length,
-      videoCount: allPosts.filter((p: any) => p.type === 'video').length,
+      blogCount: allPosts.filter((p: any) => p.type === 'BLOG').length,
+      newsCount: allPosts.filter((p: any) => p.type === 'NEWS').length,
+      videoCount: allPosts.filter((p: any) => p.type === 'VIDEO').length,
     };
   },
 
@@ -147,11 +151,10 @@ export const contentService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Get creator's post IDs and titles
     const { data: myPosts } = await supabase
-      .from('posts')
+      .from('Post')
       .select('id, title, thumbnail')
-      .eq('author_id', user.id);
+      .eq('authorId', user.id);
 
     if (!myPosts || myPosts.length === 0) return [];
 
@@ -160,20 +163,20 @@ export const contentService = {
     myPosts.forEach((p: any) => { postMap[p.id] = { title: p.title, thumbnail: p.thumbnail }; });
 
     const { data: comments, error } = await supabase
-      .from('comments')
+      .from('Comment')
       .select('*, User(id, username, avatarUrl)')
-      .in('post_id', postIds)
-      .order('created_at', { ascending: false });
+      .in('postId', postIds)
+      .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
     return (comments || []).map((c: any) => ({
       id: c.id,
       content: c.content,
-      created_at: c.created_at,
-      post_id: c.post_id,
-      post_title: postMap[c.post_id]?.title || 'Unknown Post',
-      post_thumbnail: postMap[c.post_id]?.thumbnail || null,
+      created_at: c.createdAt,
+      post_id: c.postId,
+      post_title: postMap[c.postId]?.title || 'Unknown Post',
+      post_thumbnail: postMap[c.postId]?.thumbnail || null,
       user: {
         id: c.User?.id || '',
         username: c.User?.username || 'Anonymous',
@@ -185,10 +188,17 @@ export const contentService = {
     }));
   },
 
-  async updatePost(postId: string, updates: Partial<PostData & { published: boolean }>) {
+  async updatePost(postId: string, updates: Partial<PostData>) {
+    const prismaUpdates: any = {};
+    if (updates.title) prismaUpdates.title = updates.title;
+    if (updates.content) prismaUpdates.content = updates.content;
+    if (updates.category) prismaUpdates.category = updates.category;
+    if (updates.thumbnail) prismaUpdates.thumbnail = updates.thumbnail;
+    if (updates.video_duration) prismaUpdates.videoDuration = updates.video_duration;
+
     const { data, error } = await supabase
-      .from('posts')
-      .update(updates)
+      .from('Post')
+      .update(prismaUpdates)
       .eq('id', postId)
       .select()
       .single();
@@ -198,15 +208,10 @@ export const contentService = {
   },
 
   async deletePost(postId: string) {
-    // Delete related records first
-    await supabase.from('comments').delete().eq('post_id', postId);
-    await supabase.from('votes').delete().eq('post_id', postId);
-
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId);
-
+    await supabase.from('Comment').delete().eq('postId', postId);
+    await supabase.from('Vote').delete().eq('postId', postId);
+    await supabase.from('Save').delete().eq('postId', postId);
+    const { error } = await supabase.from('Post').delete().eq('id', postId);
     if (error) throw error;
   },
 
@@ -230,27 +235,12 @@ export const contentService = {
     return publicUrl;
   },
 
-  /**
-   * Subscribe to real-time updates on the creator's posts
-   */
   subscribeToMyPostUpdates(callback: (payload: any) => void) {
     return supabase
       .channel('creator-post-updates')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'votes',
-      }, callback)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'comments',
-      }, callback)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'posts',
-      }, callback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Vote' }, callback)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, callback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, callback)
       .subscribe();
-  },
+  }
 };

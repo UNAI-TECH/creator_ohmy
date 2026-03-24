@@ -19,11 +19,11 @@ export const videoService = {
     if (!user) return [];
 
     const { data, error } = await supabase
-      .from('posts')
-      .select('*, votes(vote_type), comments(id)')
-      .eq('author_id', user.id)
-      .eq('type', 'video')
-      .order('created_at', { ascending: false })
+      .from('Post')
+      .select('*, Vote(type), Comment(id)')
+      .eq('authorId', user.id)
+      .eq('type', 'VIDEO')
+      .order('createdAt', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -33,8 +33,10 @@ export const videoService = {
 
     return (data || []).map((post: any) => ({
       ...post,
-      votes_count: post.votes?.length || 0,
-      comments_count: post.comments?.length || 0,
+      created_at: post.createdAt,
+      video_duration: post.videoDuration,
+      votes_count: post.Vote?.length || 0,
+      comments_count: post.Comment?.length || 0,
     }));
   },
 
@@ -43,12 +45,12 @@ export const videoService = {
       { data: votes },
       { data: comments },
     ] = await Promise.all([
-      supabase.from('votes').select('vote_type').eq('post_id', videoId),
-      supabase.from('comments').select('id').eq('post_id', videoId),
+      supabase.from('Vote').select('type').eq('postId', videoId),
+      supabase.from('Comment').select('id').eq('postId', videoId),
     ]);
 
-    const upvotes = votes?.filter((v: any) => v.vote_type === 1).length || 0;
-    const downvotes = votes?.filter((v: any) => v.vote_type === -1).length || 0;
+    const upvotes = votes?.filter((v: any) => v.type === 1).length || 0;
+    const downvotes = votes?.filter((v: any) => v.type === -1).length || 0;
     const totalVotes = upvotes + downvotes;
 
     return {
@@ -65,8 +67,8 @@ export const videoService = {
   subscribeToVideoAnalytics(callback: (payload: any) => void) {
     return supabase
       .channel('video-analytics')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, callback)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, callback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Vote' }, callback)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, callback)
       .subscribe();
   },
 };

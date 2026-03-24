@@ -81,7 +81,7 @@ export default function App() {
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
-        if (profile?.role === 'CREATOR') {
+        if (profile?.role === 'ANALYST') {
           setIsAuthenticated(true);
           setUserProfile(profile);
           setActivePage('Dashboard');

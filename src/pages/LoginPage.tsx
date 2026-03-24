@@ -47,7 +47,7 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
         return;
       }
 
-      if (profile.role !== 'CREATOR') {
+      if (profile.role !== 'ANALYST') {
         setError('Access denied. This portal is for creators only. If you are a viewer, please use the Hindustan app.');
         await supabase.auth.signOut();
         return;
