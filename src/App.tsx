@@ -77,11 +77,11 @@ export default function App() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('User')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
-        if (profile?.role === 'creator') {
+        if (profile?.role === 'CREATOR') {
           setIsAuthenticated(true);
           setUserProfile(profile);
           setActivePage('Dashboard');
@@ -113,7 +113,7 @@ export default function App() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('User')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle();
@@ -265,7 +265,7 @@ export default function App() {
             </button>
             <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
               <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-bold">
-                {(userProfile?.full_name || userProfile?.email || 'C').charAt(0).toUpperCase()}
+                {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
               </div>
             </button>
           </div>
@@ -286,10 +286,10 @@ export default function App() {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl font-bold">
-                    {(userProfile?.full_name || userProfile?.email || 'C').charAt(0).toUpperCase()}
+                    {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold">{userProfile?.full_name || userProfile?.username || 'Creator'}</h2>
+                    <h2 className="text-lg font-semibold">{userProfile?.username || 'Creator'}</h2>
                     <p className="text-sm text-gray-500">{userProfile?.email}</p>
                   </div>
                 </div>

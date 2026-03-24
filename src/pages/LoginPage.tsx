@@ -36,8 +36,8 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
 
       // Check if user has creator role
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, full_name')
+        .from('User')
+        .select('role, username')
         .eq('id', authData.user.id)
         .maybeSingle();
 
@@ -47,7 +47,7 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
         return;
       }
 
-      if (profile.role !== 'creator') {
+      if (profile.role !== 'CREATOR') {
         setError('Access denied. This portal is for creators only. If you are a viewer, please use the Hindustan app.');
         await supabase.auth.signOut();
         return;

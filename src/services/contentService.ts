@@ -161,7 +161,7 @@ export const contentService = {
 
     const { data: comments, error } = await supabase
       .from('comments')
-      .select('*, profiles!user_id(id, username, avatar_url, full_name)')
+      .select('*, User(id, username, avatarUrl)')
       .in('post_id', postIds)
       .order('created_at', { ascending: false });
 
@@ -175,10 +175,10 @@ export const contentService = {
       post_title: postMap[c.post_id]?.title || 'Unknown Post',
       post_thumbnail: postMap[c.post_id]?.thumbnail || null,
       user: {
-        id: c.profiles?.id || '',
-        username: c.profiles?.username || 'Anonymous',
-        avatar_url: c.profiles?.avatar_url || null,
-        full_name: c.profiles?.full_name || null,
+        id: c.User?.id || '',
+        username: c.User?.username || 'Anonymous',
+        avatar_url: c.User?.avatarUrl || null,
+        full_name: c.User?.username || null,
       },
       likes: 0,
       hearted: false,
