@@ -8,7 +8,7 @@ import {
   Menu, Search, Video, Bell, LayoutDashboard,
   PlaySquare, BarChart2, MessageSquare, Subtitles as SubtitlesIcon,
   DollarSign, Settings as SettingsIcon, Send, Upload, Wand2, LogOut,
-  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2
+  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { supabase } from './lib/supabaseClient';
@@ -19,8 +19,8 @@ import Analytics from './pages/Analytics';
 import Comments from './pages/Comments';
 import Subtitles from './pages/Subtitles';
 import Earn from './pages/Earn';
-import Customization from './pages/Customization';
-import AudioLibrary from './pages/AudioLibrary';
+import Notifications from './pages/Notifications';
+import Profile from './pages/Profile';
 import LandingPage from './pages/LandingPage';
 import JoinForm from './pages/JoinForm';
 import RequestPending from './pages/RequestPending';
@@ -216,8 +216,8 @@ export default function App() {
             <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => setActivePage('Comments')} />
             <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => setActivePage('Subtitles')} />
             <SidebarItem icon={DollarSign} label="Earn" active={activePage === 'Earn'} onClick={() => setActivePage('Earn')} />
-            <SidebarItem icon={Wand2} label="Customization" active={activePage === 'Customization'} onClick={() => setActivePage('Customization')} />
-            <SidebarItem icon={PlaySquare} label="Audio Library" active={activePage === 'Audio Library'} onClick={() => setActivePage('Audio Library')} />
+            <SidebarItem icon={Bell} label="Notifications" active={activePage === 'Notifications'} onClick={() => setActivePage('Notifications')} />
+            <SidebarItem icon={User} label="Profile" active={activePage === 'Profile'} onClick={() => setActivePage('Profile')} />
           </div>
         </div>
         <div className="border-t border-gray-200 py-4 flex flex-col gap-1">
@@ -259,11 +259,17 @@ export default function App() {
             <button onClick={() => setShowCreateModal(true)} className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
               <Upload className="w-6 h-6 text-red-600" />
             </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full relative transition-colors">
+            <button 
+              onClick={() => setActivePage('Notifications')}
+              className="p-2 hover:bg-gray-100 rounded-full relative transition-colors"
+            >
               <Bell className="w-6 h-6 text-gray-600" />
               <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 border-2 border-white rounded-full"></span>
             </button>
-            <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <button 
+              onClick={() => setActivePage('Profile')}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
               <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-bold">
                 {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
               </div>
@@ -278,8 +284,8 @@ export default function App() {
           {activePage === 'Comments' && <Comments />}
           {activePage === 'Subtitles' && <Subtitles />}
           {activePage === 'Earn' && <Earn />}
-          {activePage === 'Customization' && <Customization />}
-          {activePage === 'Audio Library' && <AudioLibrary />}
+          {activePage === 'Notifications' && <Notifications />}
+          {activePage === 'Profile' && <Profile />}
           {activePage === 'Settings' && (
             <div className="max-w-[800px] mx-auto">
               <h1 className="text-2xl font-semibold text-gray-900 mb-6">Settings</h1>
@@ -315,7 +321,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {!['Dashboard', 'Content', 'Analytics', 'Comments', 'Subtitles', 'Earn', 'Customization', 'Audio Library', 'Settings', 'Feedback'].includes(activePage) && (
+          {!['Dashboard', 'Content', 'Analytics', 'Comments', 'Subtitles', 'Earn', 'Notifications', 'Profile', 'Settings', 'Feedback'].includes(activePage) && (
             <div className="flex items-center justify-center h-full text-gray-500">
               <p className="text-lg">The <strong>{activePage}</strong> page is under construction.</p>
             </div>
