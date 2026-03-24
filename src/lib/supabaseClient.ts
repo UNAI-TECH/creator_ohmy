@@ -9,5 +9,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseAnonKey || '',
+  {
+    auth: {
+      persistSession: true,
+      storageKey: 'sb-vxenjlgoatbkfrfrkoeq-auth-token',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      // Disable navigator lock to prevent lock contention under React StrictMode
+      lock: async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
+        return await fn();
+      },
+    },
+  }
 );

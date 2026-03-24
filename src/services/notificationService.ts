@@ -13,7 +13,8 @@ export interface CreatorNotification {
 
 export const notificationService = {
   async getMyNotifications(): Promise<CreatorNotification[]> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
@@ -36,7 +37,8 @@ export const notificationService = {
   },
 
   async markAllAsRead() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const { error } = await supabase

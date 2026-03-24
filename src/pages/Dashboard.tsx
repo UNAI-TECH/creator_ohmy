@@ -167,7 +167,7 @@ export default function Dashboard() {
               </div>
 
               {chartData.length > 0 ? (
-                <div className="h-40 -ml-4">
+                <div className="h-40 -ml-4" style={{ minHeight: 160, minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                       <defs>

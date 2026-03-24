@@ -58,7 +58,8 @@ export interface CreatorComment {
 
 export const contentService = {
   async createPost(postData: PostData) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const now = new Date().toISOString();
@@ -71,10 +72,10 @@ export const contentService = {
       createdAt: now,
       updatedAt: now,
     };
-    // Only add optional fields if they have values
     if (postData.category) insertPayload.category = postData.category;
     if (postData.thumbnail) insertPayload.thumbnail = postData.thumbnail;
     if (postData.video_duration) insertPayload.videoDuration = postData.video_duration;
+    if (postData.video_url) insertPayload.videoUrl = postData.video_url;
 
     const { data, error } = await supabase
       .from('Post')
@@ -83,11 +84,50 @@ export const contentService = {
       .single();
 
     if (error) throw error;
+
+    // === Notify all followers about the new post ===
+    try {
+      // Get creator's profile for display name
+      const { data: creatorProfile } = await supabase
+        .from('User')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      const creatorName = creatorProfile?.username || 'A creator';
+      const postType = (postData.type || 'post').toLowerCase();
+
+      // Get all users who follow this creator
+      const { data: followers } = await supabase
+        .from('Follow')
+        .select('followerId')
+        .eq('followingId', user.id);
+
+      if (followers && followers.length > 0) {
+        const notifNow = new Date().toISOString();
+        const notificationRows = followers.map((f: any) => ({
+          id: crypto.randomUUID(),
+          userId: f.followerId,
+          type: 'NEW_POST',
+          title: `${creatorName} published a new ${postType}`,
+          message: postData.title,
+          targetId: data.id,
+          isRead: false,
+          createdAt: notifNow,
+        }));
+
+        await supabase.from('Notification').insert(notificationRows);
+      }
+    } catch (notifError) {
+      // Don't fail the post creation if notification fails
+      console.warn('Failed to send follower notifications:', notifError);
+    }
+
     return data;
   },
 
   async getMyPosts(): Promise<CreatorPost[]> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
@@ -117,7 +157,8 @@ export const contentService = {
   },
 
   async getMyStats(): Promise<CreatorStats> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const { data: posts, error } = await supabase
@@ -155,7 +196,8 @@ export const contentService = {
   },
 
   async getMyComments(): Promise<CreatorComment[]> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const { data: myPosts } = await supabase
@@ -223,7 +265,8 @@ export const contentService = {
   },
 
   async uploadMedia(file: File, folder: string = 'thumbnails') {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const fileExt = file.name.split('.').pop();
@@ -242,12 +285,54 @@ export const contentService = {
     return publicUrl;
   },
 
+  async uploadVideo(file: File) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) throw new Error('Not authenticated');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/videos/${Date.now()}.${fileExt}`;
+
+    // Try 'videos' bucket first, fall back to 'media'
+    let bucketName = 'media';
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (buckets?.some((b: any) => b.name === 'videos')) {
+        bucketName = 'videos';
+      }
+    } catch {
+      // If listing buckets fails (permissions), default to 'media'
+    }
+
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  },
+
   subscribeToMyPostUpdates(callback: (payload: any) => void) {
+    // Debounce to prevent rapid refetches
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedCallback = (payload: any) => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => callback(payload), 300);
+    };
+
     return supabase
       .channel('creator-post-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'Vote' }, callback)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, callback)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, callback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Vote' }, debouncedCallback)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, debouncedCallback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, debouncedCallback)
       .subscribe();
   }
 };

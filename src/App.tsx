@@ -8,11 +8,12 @@ import {
   Menu, Search, Video, Bell, LayoutDashboard,
   PlaySquare, BarChart2, MessageSquare, Subtitles as SubtitlesIcon,
   DollarSign, Settings as SettingsIcon, Send, Upload, Wand2, LogOut,
-  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User
+  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User, Film
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { supabase } from './lib/supabaseClient';
 import { contentService } from './services/contentService';
+import RichTextEditor from './components/RichTextEditor';
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
 import Analytics from './pages/Analytics';
@@ -70,6 +71,8 @@ export default function App() {
   const [createThumbnailFile, setCreateThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [createVideoDuration, setCreateVideoDuration] = useState('');
+  const [createVideoFile, setCreateVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
@@ -133,6 +136,8 @@ export default function App() {
     setCreateThumbnailFile(null);
     setThumbnailPreview(null);
     setCreateVideoDuration('');
+    setCreateVideoFile(null);
+    setVideoPreview(null);
   };
 
   const handlePublish = async () => {
@@ -148,12 +153,19 @@ export default function App() {
         thumbnailUrl = await contentService.uploadMedia(createThumbnailFile, 'thumbnails');
       }
 
+      // Upload video file if present
+      let videoUrl: string | undefined;
+      if (createVideoFile && createType === 'video') {
+        videoUrl = await contentService.uploadVideo(createVideoFile);
+      }
+
       await contentService.createPost({
         title: createTitle.trim(),
-        content: createContent.trim(),
+        content: createContent,
         type: createType,
         category: createCategory,
         thumbnail: thumbnailUrl,
+        video_url: videoUrl,
         video_duration: createType === 'video' ? createVideoDuration.trim() || undefined : undefined,
       });
       setShowCreateForm(false);
@@ -398,7 +410,12 @@ export default function App() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
-                <textarea value={createContent} onChange={e => setCreateContent(e.target.value)} placeholder={`Write your ${createType} content here...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm min-h-[200px] resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                <RichTextEditor
+                  value={createContent}
+                  onChange={setCreateContent}
+                  placeholder={`Write your ${createType} content here...`}
+                  minHeight="200px"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
@@ -445,10 +462,66 @@ export default function App() {
                 )}
               </div>
               {createType === 'video' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
-                  <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Upload Video *</label>
+                    {videoPreview ? (
+                      <div className="relative w-full rounded-xl overflow-hidden border border-gray-200 bg-black">
+                        <video src={videoPreview} controls className="w-full max-h-[300px] object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => { setCreateVideoFile(null); setVideoPreview(null); }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        className="flex flex-col items-center justify-center w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 hover:border-red-400 rounded-xl cursor-pointer transition-colors group"
+                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={e => {
+                          e.preventDefault(); e.stopPropagation();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && file.type.startsWith('video/')) {
+                            setCreateVideoFile(file);
+                            setVideoPreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      >
+                        <Film className="w-12 h-12 text-gray-400 group-hover:text-red-500 transition-colors mb-2" />
+                        <span className="text-sm font-medium text-gray-600 group-hover:text-red-600 transition-colors">Click to upload or drag & drop video</span>
+                        <span className="text-xs text-gray-400 mt-1">MP4, MOV, WebM up to 500MB</span>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setCreateVideoFile(file);
+                              setVideoPreview(URL.createObjectURL(file));
+                              // Auto-detect duration
+                              const videoEl = document.createElement('video');
+                              videoEl.preload = 'metadata';
+                              videoEl.onloadedmetadata = () => {
+                                const mins = Math.floor(videoEl.duration / 60);
+                                const secs = Math.floor(videoEl.duration % 60);
+                                setCreateVideoDuration(`${mins}:${secs.toString().padStart(2, '0')}`);
+                                URL.revokeObjectURL(videoEl.src);
+                              };
+                              videoEl.src = URL.createObjectURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
+                    <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30 (auto-detected from video)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                  </div>
+                </>
               )}
             </div>
             <div className="p-6 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white">
