@@ -80,7 +80,7 @@ export default function App() {
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         if (profile?.role === 'creator') {
           setIsAuthenticated(true);
           setUserProfile(profile);
@@ -116,7 +116,7 @@ export default function App() {
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
       setUserProfile(profile);
     }
     setIsAuthenticated(true);

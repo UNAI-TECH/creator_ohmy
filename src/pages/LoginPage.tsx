@@ -39,7 +39,7 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
         .from('profiles')
         .select('role, full_name')
         .eq('id', authData.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profile) {
         setError('Failed to verify account.');
