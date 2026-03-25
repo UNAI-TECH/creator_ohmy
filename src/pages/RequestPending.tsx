@@ -105,12 +105,9 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
   if (status === 'approved') {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-8">
-          <CheckCircle className="w-12 h-12" />
-        </div>
         
-        <h1 className="text-4xl font-extrabold mb-4 text-green-700">Application Approved! 🎉</h1>
-        <p className="text-xl text-gray-500 max-w-md mb-6 leading-relaxed">
+        <h1 className="text-2xl sm:text-4xl font-black mb-4 text-green-700 uppercase tracking-tight">Application Approved! 🎉</h1>
+        <p className="text-base sm:text-xl text-gray-500 max-w-md mb-6 leading-relaxed font-bold uppercase tracking-widest opacity-60">
           Congratulations! Your creator application has been approved. 
           You can now log in with the credentials provided by the admin.
         </p>
@@ -181,12 +178,9 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
   if (status === 'rejected') {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8">
-          <XCircle className="w-12 h-12" />
-        </div>
         
-        <h1 className="text-4xl font-extrabold mb-4 text-red-700">Application Rejected</h1>
-        <p className="text-xl text-gray-500 max-w-md mb-6 leading-relaxed">
+        <h1 className="text-2xl sm:text-4xl font-black mb-4 text-red-700 uppercase tracking-tight">Application Rejected</h1>
+        <p className="text-base sm:text-xl text-gray-500 max-w-md mb-6 leading-relaxed font-bold uppercase tracking-widest opacity-60">
           Unfortunately, your creator application was not approved at this time.
         </p>
 
@@ -239,6 +233,10 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
         <div className="w-24 h-24 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-8">
           <AlertTriangle className="w-12 h-12" />
         </div>
+        <div className="relative z-10">
+          <h2 className="text-2xl sm:text-4xl font-black mb-2 uppercase tracking-tight">Creator Application</h2>
+          <p className="text-xs sm:text-base text-gray-500 mb-8 sm:mb-10 font-bold uppercase tracking-widest opacity-60">Tell us a bit about yourself and your work.</p>
+        </div>
         <h1 className="text-3xl font-extrabold mb-4">Application Not Found</h1>
         <p className="text-gray-500 max-w-md mb-8">We couldn't find your application. Please try submitting again.</p>
         <button 
@@ -255,12 +253,9 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
   // ── PENDING STATE (default) ──
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-24 h-24 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 animate-pulse">
-        <Clock className="w-12 h-12" />
-      </div>
       
-      <h1 className="text-4xl font-extrabold mb-4">Request Pending</h1>
-      <p className="text-xl text-gray-500 max-w-md mb-4 leading-relaxed">
+      <h1 className="text-2xl sm:text-4xl font-black mb-4 uppercase tracking-tight">Request Pending</h1>
+      <p className="text-base sm:text-xl text-gray-500 max-w-md mb-4 leading-relaxed font-bold uppercase tracking-widest opacity-60">
         We've received your application! Our admin team is reviewing your profile. 
         This page updates automatically.
       </p>

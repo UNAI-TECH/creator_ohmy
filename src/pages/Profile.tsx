@@ -65,7 +65,12 @@ export default function Profile() {
   const coverUrl = profile?.coverUrl || "https://picsum.photos/seed/cover/1200/400";
   const avatarUrl = profile?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.username || 'U')}&background=E31E24&color=fff`;
 
-  const publishedPosts = posts.filter(p => p.published);
+  const displayedPosts = posts.filter(p => {
+    if (activeTab === 'PUBLISHED') return !p.status || p.status === 'PUBLISHED' || p.published;
+    if (activeTab === 'SCHEDULED') return p.status === 'SCHEDULED';
+    if (activeTab === 'ARCHIVED') return p.status === 'ARCHIVED';
+    return false;
+  });
 
   return (
     <div className="max-w-[1200px] mx-auto pb-12 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -83,10 +88,10 @@ export default function Profile() {
         />
         <button 
           onClick={() => coverInputRef.current?.click()}
-          className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-white/90 hover:bg-white text-gray-900 rounded-xl text-sm font-semibold shadow-sm transition-all border border-gray-200"
+          className="absolute bottom-4 right-4 flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/90 hover:bg-white text-gray-900 rounded-xl text-[10px] sm:text-sm font-black uppercase tracking-widest shadow-sm transition-all border border-gray-200"
         >
-          <Camera className="w-4 h-4" />
-          <span>Edit cover photo</span>
+          <Camera className="w-3.5 h-3.5 sm:w-4 h-4" />
+          <span>Edit cover</span>
         </button>
       </div>
 
@@ -124,52 +129,26 @@ export default function Profile() {
                 {profile.bio && (
                   <p className="text-sm text-gray-600 mt-2 max-w-md">{profile.bio}</p>
                 )}
-                <button className="flex items-center gap-1.5 text-blue-600 text-sm font-semibold mt-2 hover:underline">
-                  More about this channel <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-full text-sm font-bold transition-colors">
-                  Customize channel
-                </button>
-                <button className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-full text-sm font-bold transition-colors">
-                  Manage videos
-                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Community Callout */}
-      <div className="mx-6 sm:mx-12 mt-12 p-4 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gray-900">Connect with your Community</div>
-            <div className="text-xs text-gray-500">Introducing a new space where viewers can start discussions with you and your audience.</div>
-          </div>
-        </div>
-        <button className="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-50 transition-colors shadow-sm">
-          Turn on my Community
-        </button>
-      </div>
+      {/* Removed Community Callout */}
 
       {/* Content Section */}
       <div className="mx-6 sm:mx-12 mt-12 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="border-b border-gray-100 bg-gray-50/20">
-          <nav className="flex px-6" aria-label="Tabs">
+        <div className="border-b border-gray-100 bg-gray-50/20 overflow-x-auto no-scrollbar">
+          <nav className="flex px-4 sm:px-6 whitespace-nowrap" aria-label="Tabs">
             {['PUBLISHED', 'SCHEDULED', 'ARCHIVED'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "py-4 px-6 text-xs font-black tracking-widest transition-all relative",
+                  "py-4 px-5 sm:px-6 text-[10px] sm:text-xs font-black tracking-widest transition-all relative",
                   activeTab === tab
-                    ? "text-gray-900 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-red-600"
+                    ? "text-red-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-red-600 after:rounded-t-full"
                     : "text-gray-400 hover:text-gray-600"
                 )}
               >
@@ -180,9 +159,9 @@ export default function Profile() {
         </div>
 
         <div className="p-10">
-          {activeTab === 'PUBLISHED' && publishedPosts.length > 0 ? (
+          {displayedPosts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publishedPosts.map(post => (
+              {displayedPosts.map(post => (
                 <div key={post.id} className="border border-gray-100 rounded-2xl overflow-hidden group hover:shadow-md transition-all">
                   {post.thumbnail ? (
                     <img src={post.thumbnail} alt={post.title} className="w-full h-40 object-cover" />
@@ -206,9 +185,13 @@ export default function Profile() {
               <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-6 shadow-inner">
                 <PlaySquare className="w-10 h-10 text-gray-300" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Publish post</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                {activeTab === 'PUBLISHED' ? 'Publish post' : `No ${activeTab.toLowerCase()} posts`}
+              </h2>
               <p className="text-sm text-gray-500 max-w-sm">
-                Posts appear here after you publish and will be visible to your community
+                {activeTab === 'PUBLISHED' 
+                  ? 'Posts appear here after you publish and will be visible to your community'
+                  : `Any posts you save as ${activeTab.toLowerCase()} will appear here.`}
               </p>
               <button className="mt-8 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-black tracking-wide transition-all shadow-lg shadow-red-100">
                 CREATE POST

@@ -7,7 +7,7 @@ import {
 import { cn } from '../lib/utils';
 import { contentService, CreatorComment } from '../services/contentService';
 
-const tabs = ['Published', 'Held for review'];
+const tabs = ['Published'];
 
 const formatTimeAgo = (iso: string) => {
   try {
@@ -84,22 +84,22 @@ export default function Comments() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-8 border-b border-gray-200 mb-6">
+      <div className="flex items-center gap-6 border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar whitespace-nowrap">
         {tabs.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "pb-4 text-[15px] font-medium transition-colors relative",
-              activeTab === tab ? "text-blue-600" : "text-gray-500 hover:text-gray-900"
+              "pb-4 text-[13px] sm:text-[15px] font-black uppercase tracking-widest transition-colors relative",
+              activeTab === tab ? "text-red-600" : "text-gray-400 hover:text-gray-900"
             )}
           >
             {tab}
             {tab === 'Published' && (
-              <span className="ml-1 text-xs text-gray-400">({comments.length})</span>
+              <span className="ml-1 text-[10px] opacity-60">({comments.length})</span>
             )}
             {activeTab === tab && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]" />
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-600 rounded-t-full shadow-[0_-2px_8px_rgba(239,68,68,0.4)]" />
             )}
           </button>
         ))}

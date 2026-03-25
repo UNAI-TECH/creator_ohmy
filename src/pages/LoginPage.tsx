@@ -79,8 +79,8 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
           <span className="text-2xl font-bold tracking-tight text-gray-900">Creator Studio</span>
         </div>
 
-        <h1 className="text-4xl font-extrabold mb-2 tracking-tight">Welcome Back</h1>
-        <p className="text-gray-500 mb-10">Sign in with your creator credentials</p>
+        <h1 className="text-3xl sm:text-4xl font-black mb-2 tracking-tight uppercase">Welcome Back</h1>
+        <p className="text-xs sm:text-base text-gray-500 mb-10 font-bold uppercase tracking-widest opacity-60">Sign in with your creator credentials</p>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>

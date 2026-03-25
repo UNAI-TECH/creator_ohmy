@@ -11,52 +11,127 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
     <div className="min-h-screen bg-white text-[#0f0f0f] font-sans">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
-            <PlaySquare className="w-6 h-6 text-white" fill="currentColor" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
+            <PlaySquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" />
           </div>
-          <span className="text-2xl font-bold tracking-tight text-gray-900">Hindusthan Creators</span>
+          <span className="text-base sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">Hindusthan</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-4">
           <button 
             onClick={onLoginClick}
-            className="px-6 py-2 text-sm font-semibold text-gray-600 hover:text-red-600 transition-colors"
+            className="px-2 sm:px-6 py-2 text-[10px] sm:text-sm font-black text-gray-400 hover:text-red-600 transition-colors uppercase tracking-widest"
           >
             Sign In
           </button>
           <button 
             onClick={onJoinClick}
-            className="px-6 py-2.5 bg-red-600 text-white rounded-full text-sm font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100 active:scale-95"
+            className="px-4 sm:px-6 py-2 sm:py-2.5 bg-red-600 text-white rounded-xl sm:rounded-full text-[10px] sm:text-sm font-black hover:bg-red-700 transition-all shadow-lg shadow-red-100 active:scale-95 uppercase tracking-widest"
           >
-            JOIN NOW
+            JOIN
           </button>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 py-20 lg:py-32 flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-full text-sm font-bold mb-8 animate-bounce">
-          <Star className="w-4 h-4 fill-current" />
-          <span>Join the Voice of Bharat</span>
+      {/* Enhanced Modern Hero Section */}
+      <section className="relative overflow-hidden bg-white max-w-[100vw] w-full pt-16 lg:pt-32 pb-24">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[600px] opacity-30 pointer-events-none">
+          <div className="absolute top-[-10%] left-[20%] w-[400px] h-[400px] rounded-full bg-red-400 blur-[100px]" />
+          <div className="absolute top-[20%] right-[20%] w-[300px] h-[300px] rounded-full bg-orange-300 blur-[80px]" />
         </div>
-        <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
-          Share Your Story with <br />
-          <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">Millions of Indians</span>
-        </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mb-12 leading-relaxed">
-          The ultimate platform for Indian creators to share news, blogs, and analysis. Reach 1.4 billion people with your unique perspective.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button 
-            onClick={onJoinClick}
-            className="group px-10 py-5 bg-red-600 text-white rounded-2xl text-lg font-bold hover:bg-red-700 transition-all shadow-xl shadow-red-200 flex items-center gap-3"
-          >
-            Start Your Journey 
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button className="px-10 py-5 bg-white text-gray-800 border-2 border-gray-100 rounded-2xl text-lg font-bold hover:bg-gray-50 transition-all">
-            See What's Possible
-          </button>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/60 backdrop-blur-md border border-red-100 shadow-sm rounded-full text-sm font-bold mb-8 animate-[bounce_3s_infinite]">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+            </span>
+            <span className="text-red-700">Join the Voice of Bharat</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tighter mb-8 leading-[1.05] uppercase">
+            Influence <br />
+            <span className="bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 bg-clip-text text-transparent drop-shadow-sm">Millions of Indians</span>
+          </h1>
+
+          <p className="text-base sm:text-xl lg:text-2xl text-gray-500 max-w-3xl mb-12 leading-relaxed font-bold uppercase tracking-widest opacity-60">
+            The ultimate platform for Indian creators. Share news, blogs, and analysis. Reach 1.4 billion people with your unique perspective.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-5">
+            <button 
+              onClick={onJoinClick}
+              className="group relative px-10 py-5 bg-red-600 text-white rounded-2xl text-lg font-bold transition-all shadow-xl shadow-red-600/30 overflow-hidden flex items-center justify-center gap-3 hover:-translate-y-1 hover:shadow-2xl hover:shadow-red-600/40"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-[150%] skew-x-[-20deg] group-hover:translate-x-[150%] transition-transform duration-700 ease-out" />
+              <span>Start Your Journey</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button 
+              onClick={() => document.getElementById('how-to-join')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-10 py-5 bg-white text-gray-800 border-2 border-gray-200 rounded-2xl text-lg font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center shadow-sm hover:shadow-md"
+            >
+              Guidance to JOIN
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Step by Step Flow to Join */}
+      <section id="how-to-join" className="bg-gray-50 py-24 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">How to Join</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Start publishing and monetizing your content in three simple steps.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connecting Line */}
+            <div className="hidden md:block absolute top-10 left-[15%] right-[15%] h-1 bg-gradient-to-r from-red-100 via-red-300 to-orange-100 border-dashed border-red-200" />
+
+            {/* Step 1 */}
+            <div className="relative flex flex-col items-center text-center group">
+              <div className="w-20 h-20 bg-white border-4 border-red-500 text-red-600 rounded-2xl flex items-center justify-center text-2xl font-black shadow-xl shadow-red-100 z-10 mb-8 transition-transform group-hover:scale-110 group-hover:-translate-y-2">
+                1
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Apply Now</h3>
+              <p className="text-gray-600 leading-relaxed px-4">
+                Fill out the creator application form with your details and links to your previous work.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="relative flex flex-col items-center text-center group">
+              <div className="w-20 h-20 bg-white border-4 border-red-500 text-red-600 rounded-2xl flex items-center justify-center text-2xl font-black shadow-xl shadow-red-100 z-10 mb-8 transition-transform group-hover:scale-110 group-hover:-translate-y-2">
+                2
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Get Approved</h3>
+              <p className="text-gray-600 leading-relaxed px-4">
+                Our editorial team reviews your profile carefully. Once approved, you get your login credentials.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="relative flex flex-col items-center text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 text-white rounded-2xl flex items-center justify-center text-2xl font-black shadow-xl shadow-orange-200 z-10 mb-8 transition-transform group-hover:scale-110 group-hover:-translate-y-2">
+                3
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Start Publishing</h3>
+              <p className="text-gray-600 leading-relaxed px-4">
+                Log into the studio dashboard. Create posts, track analytics, and grow your Indian audience.
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-16 text-center">
+            <button 
+              onClick={onJoinClick}
+              className="inline-flex items-center gap-2 text-red-600 font-bold hover:text-red-700 hover:underline underline-offset-4"
+            >
+              Submit your application today <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -81,9 +156,23 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-gray-100 text-center text-gray-400 text-sm">
-        <p>© 2026 Oh My Hindustan. Empowering Indian Voices.</p>
+      {/* Modern Minimal Footer */}
+      <footer className="bg-white pt-20 pb-10 border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center">
+          <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-8 shadow-sm border border-red-100">
+            <PlaySquare className="w-6 h-6 text-red-600" fill="currentColor" />
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-12 text-sm font-semibold text-gray-400">
+            <a href="#" className="hover:text-red-600 transition-colors">About</a>
+            <a href="#" className="hover:text-red-600 transition-colors">Creators</a>
+            <a href="#" className="hover:text-red-600 transition-colors">Terms</a>
+            <a href="#" className="hover:text-red-600 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-red-600 transition-colors">Contact</a>
+          </div>
+          <p className="text-gray-400 text-xs font-medium tracking-wide">
+            © 2026 OH MY HINDUSTAN. ALL RIGHTS RESERVED.
+          </p>
+        </div>
       </footer>
     </div>
   );

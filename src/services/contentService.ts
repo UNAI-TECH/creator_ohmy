@@ -9,6 +9,8 @@ export interface PostData {
   thumbnail?: string;
   video_url?: string;
   video_duration?: string;
+  status?: 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
+  scheduledFor?: string;
 }
 
 export interface CreatorPost {
@@ -20,6 +22,8 @@ export interface CreatorPost {
   thumbnail: string | null;
   video_url: string | null;
   video_duration: string | null;
+  status?: string;
+  scheduledFor?: string;
   published: boolean;
   created_at: string;
   updated_at: string;
@@ -76,6 +80,8 @@ export const contentService = {
     if (postData.thumbnail) insertPayload.thumbnail = postData.thumbnail;
     if (postData.video_duration) insertPayload.videoDuration = postData.video_duration;
     if (postData.video_url) insertPayload.videoUrl = postData.video_url;
+    if (postData.status) insertPayload.status = postData.status;
+    if (postData.scheduledFor) insertPayload.scheduledFor = postData.scheduledFor;
 
     const { data, error } = await supabase
       .from('Post')
@@ -145,9 +151,11 @@ export const contentService = {
       type: post.type?.toLowerCase() || 'blog',
       category: post.category || 'General',
       thumbnail: post.thumbnail,
-      video_url: null,
+      video_url: post.videoUrl || null,
       video_duration: post.videoDuration,
-      published: true,
+      status: post.status || 'PUBLISHED',
+      scheduledFor: post.scheduledFor,
+      published: post.published !== false,
       created_at: post.createdAt,
       updated_at: post.updatedAt,
       vote_count: post.Vote?.length || 0,
@@ -244,6 +252,8 @@ export const contentService = {
     if (updates.category) prismaUpdates.category = updates.category;
     if (updates.thumbnail) prismaUpdates.thumbnail = updates.thumbnail;
     if (updates.video_duration) prismaUpdates.videoDuration = updates.video_duration;
+    if (updates.status) prismaUpdates.status = updates.status;
+    if (updates.scheduledFor) prismaUpdates.scheduledFor = updates.scheduledFor;
 
     const { data, error } = await supabase
       .from('Post')

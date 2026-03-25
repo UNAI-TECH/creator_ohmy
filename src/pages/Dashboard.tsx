@@ -102,12 +102,12 @@ export default function Dashboard() {
     <div className="max-w-[1600px] mx-auto w-full animate-in fade-in duration-300">
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">Channel dashboard</h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20 sm:pb-0">
         
         {/* Column 1: Stats Overview */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard 
               icon={FileText} 
               label="Total Content" 
@@ -151,7 +151,7 @@ export default function Dashboard() {
             <span className="text-sm text-gray-400">Based on recent posts</span>
           }>
             <div className="flex flex-col h-full">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="text-sm text-gray-600 flex items-center gap-2">
                     <ThumbsUp className="w-4 h-4" /> Votes
@@ -167,8 +167,8 @@ export default function Dashboard() {
               </div>
 
               {chartData.length > 0 ? (
-                <div className="h-40 -ml-4" style={{ minHeight: 160, minWidth: 0 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-48 -ml-4 w-full relative" style={{ minHeight: '192px' }}>
+                  <ResponsiveContainer width="99%" height="100%" debounce={1}>
                     <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorVotes" x1="0" y1="0" x2="0" y2="1">
@@ -197,72 +197,100 @@ export default function Dashboard() {
 
           {/* Recent Uploads Table */}
           <Card title="Recent content" className="flex-1">
-            <div className="overflow-x-auto -mx-6 px-6">
-              <table className="w-full text-left border-collapse min-w-[700px]">
-                <thead>
-                  <tr className="border-b border-gray-200 text-sm text-gray-500">
-                    <th className="pb-3 font-medium px-4 w-1/2">Content</th>
-                    <th className="pb-3 font-medium px-4">Type</th>
-                    <th className="pb-3 font-medium px-4">Date</th>
-                    <th className="pb-3 font-medium px-4 text-right">Votes</th>
-                    <th className="pb-3 font-medium px-4 text-right">Comments</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm divide-y divide-gray-100">
-                  {recentPosts.length > 0 ? (
-                    recentPosts.map((post) => {
-                      const TypeIcon = TYPE_ICONS[post.type] || FileText;
-                      return (
-                        <tr key={post.id} className="hover:bg-gray-50 transition-colors group cursor-pointer">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-4">
-                              <div className="relative w-24 aspect-video rounded bg-gray-200 overflow-hidden shrink-0">
-                                {post.thumbnail ? (
-                                  <img src={post.thumbnail} className="w-full h-full object-cover" alt={post.title} />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                    <TypeIcon className="w-6 h-6 text-gray-400" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="max-w-[200px] sm:max-w-xs">
-                                <div className="font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                                  {post.title}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">{post.category}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span 
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-                              style={{ backgroundColor: (TYPE_COLORS[post.type] || '#6366F1') + '15', color: TYPE_COLORS[post.type] || '#6366F1' }}
-                            >
-                              <TypeIcon className="w-3.5 h-3.5" />
-                              {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            <div>{formatDate(post.created_at)}</div>
-                            <div className="text-xs text-gray-400">Published</div>
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-900">{post.vote_count}</td>
-                          <td className="py-3 px-4 text-right text-gray-900">{post.comment_count}</td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="py-12 text-center text-gray-500">
-                        <div className="flex flex-col items-center gap-3">
-                          <FileText className="w-10 h-10 text-gray-300" />
-                          <p className="text-sm">No content published yet. Click <strong>CREATE</strong> to get started!</p>
-                        </div>
-                      </td>
+            <div className="w-full">
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      <th className="pb-4 px-4 w-1/2">Content</th>
+                      <th className="pb-4 px-4">Type</th>
+                      <th className="pb-4 px-4 text-right">Votes</th>
+                      <th className="pb-4 px-4 text-right">Comments</th>
+                      <th className="pb-4 px-4 text-right">Date</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-gray-100">
+                    {recentPosts.length > 0 ? (
+                      recentPosts.map((post) => {
+                        const TypeIcon = TYPE_ICONS[post.type] || FileText;
+                        return (
+                          <tr key={post.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer">
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-4">
+                                <div className="relative w-24 aspect-video rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                                  {post.thumbnail ? (
+                                    <img src={post.thumbnail} className="w-full h-full object-cover" alt={post.title} />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                                      <TypeIcon className="w-6 h-6 text-gray-300" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 pr-4">
+                                  <div className="font-bold text-gray-900 line-clamp-1 group-hover:text-red-600 transition-colors">
+                                    {post.title}
+                                  </div>
+                                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{post.category}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span 
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+                                style={{ backgroundColor: (TYPE_COLORS[post.type] || '#6366F1') + '15', color: TYPE_COLORS[post.type] || '#6366F1' }}
+                              >
+                                {post.type}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-right font-black text-gray-900">{post.vote_count}</td>
+                            <td className="py-4 px-4 text-right font-black text-gray-900">{post.comment_count}</td>
+                            <td className="py-4 px-4 text-right text-gray-500 whitespace-nowrap text-xs font-bold">
+                              {formatDate(post.created_at)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr><td colSpan={5} className="py-12 text-center text-gray-400">No content yet.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden divide-y divide-gray-100 -mx-6">
+                {recentPosts.length > 0 ? (
+                  recentPosts.map((post) => {
+                    const TypeIcon = TYPE_ICONS[post.type] || FileText;
+                    return (
+                      <div key={post.id} className="p-4 flex gap-4 active:bg-gray-50 transition-colors">
+                        <div className="relative w-24 aspect-video rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                          {post.thumbnail ? (
+                            <img src={post.thumbnail} className="w-full h-full object-cover" alt={post.title} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <TypeIcon className="w-6 h-6 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight mb-1">{post.title}</h4>
+                          <div className="flex items-center justify-between mt-2">
+                             <div className="flex items-center gap-2">
+                               <ThumbsUp className="w-3.5 h-3.5 text-red-500" />
+                               <span className="text-xs font-black text-gray-900">{post.vote_count}</span>
+                             </div>
+                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{post.type}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-12 text-center text-gray-400 text-sm">No content yet.</div>
+                )}
+              </div>
             </div>
           </Card>
         </div>

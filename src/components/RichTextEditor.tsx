@@ -89,13 +89,13 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write y
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200 flex-wrap">
+      <div className="flex items-center gap-0.5 sm:gap-1 px-1 sm:px-2 py-1 bg-gray-50 border-b border-gray-200 flex-wrap">
         {/* Undo / Redo */}
         <ToolbarButton onClick={() => execCommand('undo')} title="Undo">
-          <Undo2 className="w-4 h-4" />
+          <Undo2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </ToolbarButton>
         <ToolbarButton onClick={() => execCommand('redo')} title="Redo">
-          <Redo2 className="w-4 h-4" />
+          <Redo2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </ToolbarButton>
 
         <Divider />

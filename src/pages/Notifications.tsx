@@ -51,13 +51,13 @@ export default function Notifications() {
 
   return (
     <div className="max-w-[1000px] mx-auto pb-12 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+      <div className="flex items-start justify-between mb-8 gap-4 px-2 sm:px-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Channel notifications</h1>
-          <p className="text-sm text-gray-500 mt-1">Stay updated with your channel's activity in realtime</p>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight uppercase">Channel notifications</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Stay updated with your channel's activity in realtime</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleMarkAllRead} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors tooltip" title="Mark all as read">
+          <button onClick={handleMarkAllRead} className="p-2 sm:p-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-500 transition-colors tooltip border border-gray-100" title="Mark all as read">
             <CheckCircle2 className="w-5 h-5" />
           </button>
         </div>

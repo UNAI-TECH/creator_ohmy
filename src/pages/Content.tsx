@@ -115,8 +115,8 @@ export default function Content() {
           />
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto relative">
+        {/* Content List/Table */}
+        <div className="flex-1 overflow-y-auto relative">
           {loading ? (
             <div className="py-12 text-center text-gray-500">
               <div className="flex items-center justify-center gap-2">
@@ -135,86 +135,153 @@ export default function Content() {
               </p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse min-w-[800px]">
-              <thead>
-                <tr className="border-b border-gray-200 text-sm text-[#606060] bg-white">
-                  <th className="py-3 px-4 font-medium w-[45%]">Content</th>
-                  <th className="py-3 px-4 font-medium w-[12%]">Type</th>
-                  <th className="py-3 px-4 font-medium w-[12%]">Status</th>
-                  <th className="py-3 px-4 font-medium w-[12%]">Date</th>
-                  <th className="py-3 px-4 font-medium text-right w-[8%]">Votes</th>
-                  <th className="py-3 px-4 font-medium text-right w-[8%]">Comments</th>
-                  <th className="py-3 px-4 font-medium text-right w-[5%]"></th>
-                </tr>
-              </thead>
-              <tbody className="text-sm divide-y divide-gray-100 bg-white">
+            <div className="w-full">
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1000px]">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-sm text-[#606060] bg-white">
+                      <th className="py-4 px-6 font-medium w-[45%]">Content</th>
+                      <th className="py-4 px-6 font-medium w-[12%]">Type</th>
+                      <th className="py-4 px-6 font-medium w-[12%]">Status</th>
+                      <th className="py-4 px-6 font-medium w-[12%]">Date</th>
+                      <th className="py-4 px-6 font-medium text-right w-[8%]">Votes</th>
+                      <th className="py-4 px-6 font-medium text-right w-[8%]">Comments</th>
+                      <th className="py-4 px-6 font-medium text-right w-[5%]"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm divide-y divide-gray-100 bg-white">
+                    {filtered.map((post) => {
+                      const TypeIcon = TYPE_ICONS[post.type] || FileText;
+                      return (
+                        <tr key={post.id} className="hover:bg-[#f9f9f9] transition-colors group relative">
+                          <td className="py-4 px-6">
+                            <div className="flex gap-4">
+                              <div className="relative w-32 aspect-video rounded-lg bg-gray-200 overflow-hidden shrink-0 cursor-pointer shadow-sm">
+                                {post.thumbnail ? (
+                                  <img src={post.thumbnail} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt={post.title} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                    <TypeIcon className="w-8 h-8 text-gray-400" />
+                                  </div>
+                                )}
+                                {post.video_duration && (
+                                  <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded font-black tracking-widest uppercase">
+                                    {post.video_duration}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col min-w-0 pr-4 justify-center">
+                                <div className="font-bold text-gray-900 line-clamp-2 cursor-pointer mb-1 group-hover:text-red-600 transition-colors leading-tight">
+                                  {post.title}
+                                </div>
+                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{post.category}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 align-top pt-6">
+                            <span 
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase"
+                              style={{ backgroundColor: (TYPE_COLORS[post.type] || '#6366F1') + '15', color: TYPE_COLORS[post.type] || '#6366F1' }}
+                            >
+                              <TypeIcon className="w-3.5 h-3.5" />
+                              {post.type}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 align-top pt-6">
+                            <div className="flex items-center gap-1.5 text-green-600 font-bold text-xs uppercase tracking-wider">
+                              <Globe2 className="w-4 h-4" />
+                              <span>{post.visibility}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 align-top pt-6 text-gray-500">
+                            <div className="text-xs font-bold">{formatDate(post.created_at)}</div>
+                            <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">Published</div>
+                          </td>
+                          <td className="py-4 px-6 align-top pt-8 text-right font-black text-gray-900">
+                            {post.vote_count}
+                          </td>
+                          <td className="py-4 px-6 align-top pt-8 text-right font-black text-gray-900">
+                            {post.comment_count}
+                          </td>
+                          <td className="py-4 px-6 align-top pt-6 text-right">
+                            <button 
+                              onClick={() => handleDelete(post.id)} 
+                              className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="lg:hidden divide-y divide-gray-100">
                 {filtered.map((post) => {
                   const TypeIcon = TYPE_ICONS[post.type] || FileText;
                   return (
-                    <tr key={post.id} className="hover:bg-[#f9f9f9] transition-colors group relative">
-                      <td className="py-3 px-4">
-                        <div className="flex gap-4">
-                          <div className="relative w-32 aspect-video rounded-lg bg-gray-200 overflow-hidden shrink-0 cursor-pointer shadow-sm">
-                            {post.thumbnail ? (
-                              <img src={post.thumbnail} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt={post.title} />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                <TypeIcon className="w-8 h-8 text-gray-400" />
-                              </div>
-                            )}
-                            {post.video_duration && (
-                              <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded font-medium">
-                                {post.video_duration}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col min-w-0 pr-4 justify-center">
-                            <div className="font-medium text-[#0f0f0f] line-clamp-2 cursor-pointer mb-1 group-hover:text-[#065fd4] transition-colors">
-                              {post.title}
+                    <div key={post.id} className="p-4 flex flex-col gap-4 active:bg-gray-50 transition-colors">
+                      <div className="flex gap-4">
+                        <div className="relative w-28 aspect-video rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-sm border border-gray-100">
+                          {post.thumbnail ? (
+                            <img src={post.thumbnail} className="w-full h-full object-cover" alt={post.title} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <TypeIcon className="w-8 h-8 text-gray-300" />
                             </div>
-                            <div className="text-xs text-[#606060] truncate">{post.category}</div>
+                          )}
+                          {post.video_duration && (
+                            <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-widest scale-90">
+                              {post.video_duration}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-snug mb-1">{post.title}</h3>
+                          <div className="flex items-center gap-2">
+                             <span 
+                               className="text-[10px] font-black uppercase tracking-widest"
+                               style={{ color: TYPE_COLORS[post.type] || '#6366F1' }}
+                             >
+                               {post.type}
+                             </span>
+                             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{post.category}</span>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 align-top pt-5">
-                        <span 
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-                          style={{ backgroundColor: (TYPE_COLORS[post.type] || '#6366F1') + '15', color: TYPE_COLORS[post.type] || '#6366F1' }}
-                        >
-                          <TypeIcon className="w-3.5 h-3.5" />
-                          {post.type.charAt(0).toUpperCase() + post.type.slice(1)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 align-top pt-5">
-                        <div className="flex items-center gap-1.5 text-green-600">
-                          <Globe2 className="w-4 h-4" />
-                          <span>{post.visibility}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100/50">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp className="w-3.5 h-3.5 text-red-500" />
+                            <span className="text-gray-900">{post.vote_count}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+                            <span className="text-gray-900">{post.comment_count}</span>
+                          </div>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 align-top pt-5 text-[#606060]">
-                        <div className="cursor-pointer hover:text-[#065fd4] text-[#0f0f0f]">{formatDate(post.created_at)}</div>
-                        <div className="text-xs mt-0.5">Published</div>
-                      </td>
-                      <td className="py-3 px-4 align-top pt-6 text-right text-[#0f0f0f]">
-                        {post.vote_count}
-                      </td>
-                      <td className="py-3 px-4 align-top pt-6 text-right text-[#0f0f0f]">
-                        {post.comment_count}
-                      </td>
-                      <td className="py-3 px-4 align-top pt-5 text-right">
-                        <button 
-                          onClick={() => handleDelete(post.id)} 
-                          className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[9px] uppercase tracking-tighter opacity-70">{formatDate(post.created_at)}</span>
+                          <button 
+                            onClick={() => handleDelete(post.id)} 
+                            className="p-1.5 bg-red-50 text-red-600 rounded-lg"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -90,24 +90,24 @@ export default function Analytics() {
           <p className="text-sm text-gray-500 mt-1">That's about <span className="text-green-600 font-semibold">15% more</span> than usual</p>
         </div>
 
-        <div className="flex border-b border-gray-50">
+        <div className="grid grid-cols-3 border-b border-gray-50">
           {[
             { label: 'Views', value: stats?.totalViews || 1240, color: '#ef4444', key: 'Views' },
             { label: 'Watch time', value: '45.2', color: '#3b82f6', key: 'Watch time' },
-            { label: 'Subscribers', value: stats?.totalFollowers || 12, color: '#8b5cf6', key: 'Subscribers' },
+            { label: 'Subs', value: stats?.totalFollowers || 12, color: '#8b5cf6', key: 'Subscribers' },
           ].map(metric => (
             <button 
               key={metric.key}
               onClick={() => setActiveMetric(metric.key)}
               className={cn(
-                "flex-1 py-6 flex flex-col items-center justify-center transition-all relative",
+                "py-6 flex flex-col items-center justify-center transition-all relative border-r last:border-r-0 border-gray-50/50",
                 activeMetric === metric.key ? "bg-red-50/30" : "hover:bg-gray-50"
               )}
             >
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{metric.label}</span>
-              <span className="text-2xl text-gray-900 font-black mt-1">{metric.value}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center px-1">{metric.label}</span>
+              <span className="text-lg sm:text-2xl text-gray-900 font-black mt-1">{metric.value}</span>
               {activeMetric === metric.key && (
-                <div className="absolute bottom-0 left-6 right-6 h-1 bg-red-600 rounded-t-full shadow-[0_-2px_8px_rgba(239,68,68,0.2)]" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-600 rounded-t-full shadow-[0_-2px_8px_rgba(239,68,68,0.2)]" />
               )}
             </button>
           ))}
@@ -196,8 +196,10 @@ export default function Analytics() {
       </div>
 
       <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Content Performance</h2>
-        <div className="overflow-x-auto">
+        <h2 className="text-xl font-bold text-gray-900 mb-6 px-0 group-hover:text-red-600 transition-colors">Content Performance</h2>
+        
+        {/* Desktop View */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-left text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
@@ -237,6 +239,44 @@ export default function Analytics() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="lg:hidden divide-y divide-gray-50">
+          {posts.length > 0 ? posts.map(post => (
+            <div key={post.id} className="py-4 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100">
+                  {post.thumbnail ? <img src={post.thumbnail} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Video className="w-4 h-4 text-gray-300" /></div>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-gray-900 truncate">{post.title}</div>
+                  <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{post.type}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100/50">
+                <div className="text-center">
+                  <div className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Views</div>
+                  <div className="text-xs font-black text-gray-900">{post.vote_count * 12}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Duration</div>
+                  <div className="text-xs font-black text-gray-900">2:45</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Impressions</div>
+                  <div className="text-xs font-black text-gray-900">{post.vote_count * 150}</div>
+                </div>
+              </div>
+            </div>
+          )) : (
+            [...Array(3)].map((_, i) => (
+              <div key={i} className="py-4 animate-pulse">
+                <div className="h-12 bg-gray-100 rounded-xl mb-3"></div>
+                <div className="h-10 bg-gray-50 rounded-xl"></div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -351,23 +391,17 @@ export default function Analytics() {
             <p className="text-sm text-gray-500 mt-1">Detailed breakdown of your channel performance</p>
           </div>
           <div className="flex items-center gap-3">
-             <button className="p-3 bg-white border border-gray-100 rounded-2xl text-gray-500 hover:text-gray-900 hover:border-gray-300 transition-all shadow-sm">
-               <Settings className="w-5 h-5" />
-             </button>
-             <button className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-sm font-black tracking-wide shadow-lg shadow-red-100 transition-all">
-               EXPORT DATA
-             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white p-2 rounded-3xl border border-gray-100 shadow-sm mb-8 flex items-center gap-1">
+        <div className="bg-white p-1.5 rounded-3xl border border-gray-100 shadow-sm mb-8 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {tabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 py-3 px-6 rounded-2xl text-xs font-black tracking-widest uppercase transition-all",
+                "flex-1 py-3 px-4 sm:px-6 rounded-2xl text-[10px] sm:text-xs font-black tracking-widest uppercase transition-all whitespace-nowrap",
                 activeTab === tab 
                   ? "bg-gray-900 text-white shadow-lg shadow-gray-200" 
                   : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
