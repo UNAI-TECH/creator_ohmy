@@ -91,42 +91,9 @@ export const contentService = {
 
     if (error) throw error;
 
-    // === Notify all followers about the new post ===
-    try {
-      // Get creator's profile for display name
-      const { data: creatorProfile } = await supabase
-        .from('User')
-        .select('username')
-        .eq('id', user.id)
-        .single();
-      const creatorName = creatorProfile?.username || 'A creator';
-      const postType = (postData.type || 'post').toLowerCase();
-
-      // Get all users who follow this creator
-      const { data: followers } = await supabase
-        .from('Follow')
-        .select('followerId')
-        .eq('followingId', user.id);
-
-      if (followers && followers.length > 0) {
-        const notifNow = new Date().toISOString();
-        const notificationRows = followers.map((f: any) => ({
-          id: crypto.randomUUID(),
-          userId: f.followerId,
-          type: 'NEW_POST',
-          title: `${creatorName} published a new ${postType}`,
-          message: postData.title,
-          targetId: data.id,
-          isRead: false,
-          createdAt: notifNow,
-        }));
-
-        await supabase.from('Notification').insert(notificationRows);
-      }
-    } catch (notifError) {
-      // Don't fail the post creation if notification fails
-      console.warn('Failed to send follower notifications:', notifError);
-    }
+    // === Notify followers about the new post ===
+    // This is now handled automatically by a Supabase Database Webhook + Edge Function
+    // for significantly better performance and scalability.
 
     return data;
   },

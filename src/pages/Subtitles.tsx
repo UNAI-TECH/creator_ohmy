@@ -44,12 +44,6 @@ export default function Subtitles() {
     <div className="max-w-[1200px] mx-auto pb-12 w-full animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Channel subtitles</h1>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 bg-white rounded-full text-sm font-medium transition-colors">
-            <Settings className="w-4 h-4" />
-            <span>Channel Language Settings</span>
-          </button>
-        </div>
       </div>
       
       {/* Search and Language Filter Bar */}
@@ -80,10 +74,6 @@ export default function Subtitles() {
             <Globe className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             <ChevronDown className="w-4 h-4 text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-          
-          <button className="flex items-center justify-center p-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-gray-700 transition-colors tooltip" title="Advanced Filters">
-            <Filter className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -207,14 +197,6 @@ function renderLanguages(video: CreatorPost, isMobile = false) {
         </div>
         <div className="flex items-center justify-between">
            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Modified: {new Date(video.updated_at).toLocaleDateString()}</span>
-           <div className="flex gap-2">
-             <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:text-red-600 transition-colors shadow-sm">
-               <Edit2 className="w-3.5 h-3.5" />
-             </button>
-             <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:text-red-600 transition-colors shadow-sm">
-               <Plus className="w-3.5 h-3.5" />
-             </button>
-           </div>
         </div>
       </div>
     );
@@ -223,14 +205,13 @@ function renderLanguages(video: CreatorPost, isMobile = false) {
   return (
     <div className="bg-white border-t border-gray-100 p-0 animate-in slide-in-from-top-1 fade-in duration-200">
       <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50/30 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-        <div className="col-span-4 pl-40">Language</div>
+        <div className="col-span-6 pl-40">Language</div>
         <div className="col-span-3">Status</div>
-        <div className="col-span-2">Modified</div>
-        <div className="col-span-3 text-right pr-4">Actions</div>
+        <div className="col-span-3">Modified</div>
       </div>
       <div className="divide-y divide-gray-50">
         <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-gray-50/50 transition-colors group/lang">
-          <div className="col-span-4 pl-40 flex items-center gap-2">
+          <div className="col-span-6 pl-40 flex items-center gap-2">
             <span className="text-sm font-bold text-gray-900">English</span>
             <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-black uppercase tracking-widest">Original</span>
           </div>
@@ -239,16 +220,8 @@ function renderLanguages(video: CreatorPost, isMobile = false) {
               Published
             </span>
           </div>
-          <div className="col-span-2 text-xs font-bold text-gray-500">
+          <div className="col-span-3 text-xs font-bold text-gray-500">
             {new Date(video.updated_at).toLocaleDateString()}
-          </div>
-          <div className="col-span-3 flex justify-end pr-4 gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-600 transition-all border border-transparent hover:border-gray-200">
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-red-600 transition-all border border-transparent hover:border-gray-200">
-              <Plus className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>

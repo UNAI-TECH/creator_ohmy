@@ -16,7 +16,6 @@ import { contentService } from './services/contentService';
 import RichTextEditor from './components/RichTextEditor';
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
-import Analytics from './pages/Analytics';
 import Comments from './pages/Comments';
 import Subtitles from './pages/Subtitles';
 import Earn from './pages/Earn';
@@ -311,7 +310,6 @@ export default function App() {
           <div className="flex flex-col gap-1">
             <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activePage === 'Dashboard'} onClick={() => navigateTo('Dashboard')} />
             <SidebarItem icon={Video} label="Content" active={activePage === 'Content'} onClick={() => navigateTo('Content')} />
-            <SidebarItem icon={BarChart2} label="Analytics" active={activePage === 'Analytics'} onClick={() => navigateTo('Analytics')} />
             <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => navigateTo('Comments')} />
             <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => navigateTo('Subtitles')} />
             <SidebarItem icon={DollarSign} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
@@ -367,11 +365,15 @@ export default function App() {
             </button>
             <button 
               onClick={() => setActivePage('Profile')}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors overflow-hidden"
             >
-              <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-bold">
-                {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
-              </div>
+              {userProfile?.avatarUrl ? (
+                <img src={userProfile.avatarUrl} className="w-8 h-8 rounded-full object-cover" alt="Profile" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-bold">
+                  {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
+                </div>
+              )}
             </button>
           </div>
         </header>
@@ -379,7 +381,6 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {activePage === 'Dashboard' && <Dashboard />}
           {activePage === 'Content' && <Content />}
-          {activePage === 'Analytics' && <Analytics />}
           {activePage === 'Comments' && <Comments />}
           {activePage === 'Subtitles' && <Subtitles />}
           {activePage === 'Earn' && <Earn />}
@@ -479,7 +480,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {!['Dashboard', 'Content', 'Analytics', 'Comments', 'Subtitles', 'Earn', 'Notifications', 'Profile', 'Settings', 'Feedback'].includes(activePage) && (
+          {!['Dashboard', 'Content', 'Comments', 'Subtitles', 'Earn', 'Notifications', 'Profile', 'Settings', 'Feedback'].includes(activePage) && (
             <div className="flex items-center justify-center h-full text-gray-500">
               <p className="text-lg">The <strong>{activePage}</strong> page is under construction.</p>
             </div>

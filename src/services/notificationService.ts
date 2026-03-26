@@ -24,7 +24,15 @@ export const notificationService = {
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Map database fields to interface if needed (though they should match if select * is used)
+    return (data || []).map(item => ({
+      ...item,
+      isRead: item.isRead,
+      createdAt: item.createdAt,
+      userId: item.userId,
+      targetId: item.targetId
+    }));
   },
 
   async markAsRead(notificationId: string) {
@@ -46,6 +54,28 @@ export const notificationService = {
       .update({ isRead: true })
       .eq('userId', user.id)
       .eq('isRead', false);
+
+    if (error) throw error;
+  },
+
+  async deleteNotifications(ids: string[]) {
+    const { error } = await supabase
+      .from('Notification')
+      .delete()
+      .in('id', ids);
+
+    if (error) throw error;
+  },
+
+  async deleteAllNotifications() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('Notification')
+      .delete()
+      .eq('userId', user.id);
 
     if (error) throw error;
   },
