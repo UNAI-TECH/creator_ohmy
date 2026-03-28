@@ -8,7 +8,8 @@ import {
   Menu, Search, Video, Bell, LayoutDashboard,
   PlaySquare, BarChart2, MessageSquare, Subtitles as SubtitlesIcon,
   DollarSign, Settings as SettingsIcon, Send, Upload, Wand2, LogOut,
-  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User, Film
+  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User, Film,
+  Aperture, Clock
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { supabase } from './lib/supabaseClient';
@@ -16,6 +17,7 @@ import { contentService } from './services/contentService';
 import RichTextEditor from './components/RichTextEditor';
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
+import StoriesPage from './pages/Stories';
 import Comments from './pages/Comments';
 import Subtitles from './pages/Subtitles';
 import Earn from './pages/Earn';
@@ -61,7 +63,7 @@ export default function App() {
   // Create Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createType, setCreateType] = useState<'blog' | 'news' | 'video'>('blog');
+  const [createType, setCreateType] = useState<'blog' | 'news' | 'video' | 'story'>('blog');
   
   // Create form state
   const [createTitle, setCreateTitle] = useState('');
@@ -179,6 +181,9 @@ export default function App() {
       if (createVideoFile && createType === 'video') {
         videoUrl = await contentService.uploadVideo(createVideoFile);
       }
+
+      // Story logic removed from here as it is now handled in the dedicated Stories page
+      // with a more advanced WhatsApp-style editor.
 
       await contentService.createPost({
         title: createTitle.trim(),
@@ -310,6 +315,7 @@ export default function App() {
           <div className="flex flex-col gap-1">
             <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activePage === 'Dashboard'} onClick={() => navigateTo('Dashboard')} />
             <SidebarItem icon={Video} label="Content" active={activePage === 'Content'} onClick={() => navigateTo('Content')} />
+            <SidebarItem icon={Aperture} label="Stories" active={activePage === 'Stories'} onClick={() => navigateTo('Stories')} />
             <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => navigateTo('Comments')} />
             <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => navigateTo('Subtitles')} />
             <SidebarItem icon={DollarSign} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
@@ -381,6 +387,7 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {activePage === 'Dashboard' && <Dashboard />}
           {activePage === 'Content' && <Content />}
+          {activePage === 'Stories' && <StoriesPage />}
           {activePage === 'Comments' && <Comments />}
           {activePage === 'Subtitles' && <Subtitles />}
           {activePage === 'Earn' && <Earn />}
@@ -480,7 +487,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {!['Dashboard', 'Content', 'Comments', 'Subtitles', 'Earn', 'Notifications', 'Profile', 'Settings', 'Feedback'].includes(activePage) && (
+          {!['Dashboard', 'Content', 'Stories', 'Comments', 'Subtitles', 'Earn', 'Notifications', 'Profile', 'Settings', 'Feedback'].includes(activePage) && (
             <div className="flex items-center justify-center h-full text-gray-500">
               <p className="text-lg">The <strong>{activePage}</strong> page is under construction.</p>
             </div>
@@ -529,13 +536,14 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: (createType === 'blog' ? '#8B5CF6' : createType === 'news' ? '#0EA5E9' : '#EF4444') + '15' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: (createType === 'blog' ? '#8B5CF6' : createType === 'news' ? '#0EA5E9' : createType === 'story' ? '#F59E0B' : '#EF4444') + '15' }}>
                   {createType === 'blog' && <FileText className="w-4 h-4 text-[#8B5CF6]" />}
                   {createType === 'news' && <Newspaper className="w-4 h-4 text-[#0EA5E9]" />}
                   {createType === 'video' && <Video className="w-4 h-4 text-[#EF4444]" />}
+                  {createType === 'story' && <Aperture className="w-4 h-4 text-[#F59E0B]" />}
                 </div>
                 <h2 className="text-lg font-bold text-gray-900">
-                  New {createType === 'blog' ? 'Blog Post' : createType === 'news' ? 'News Article' : 'Video'}
+                  New {createType === 'blog' ? 'Blog Post' : createType === 'news' ? 'News Article' : createType === 'story' ? 'Story' : 'Video'}
                 </h2>
               </div>
               <button onClick={() => setShowCreateForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -543,29 +551,36 @@ export default function App() {
               </button>
             </div>
             <div className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map(cat => (
-                    <button key={cat} onClick={() => setCreateCategory(cat)} className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-colors", createCategory === cat ? "bg-red-50 border-red-300 text-red-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100")}>{cat}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
-                <RichTextEditor
-                  value={createContent}
-                  onChange={setCreateContent}
-                  placeholder={`Write your ${createType} content here...`}
-                  minHeight="200px"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail (optional)</label>
+              {createType !== 'story' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                    <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map(cat => (
+                        <button key={cat} onClick={() => setCreateCategory(cat)} className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-colors", createCategory === cat ? "bg-red-50 border-red-300 text-red-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100")}>{cat}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
+                    <RichTextEditor
+                      value={createContent}
+                      onChange={setCreateContent}
+                      placeholder={`Write your ${createType} content here...`}
+                      minHeight="200px"
+                    />
+                  </div>
+                </>
+              )}
+              {createType !== 'video' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {createType === 'story' ? 'Story Media (Image) *' : 'Thumbnail (optional)'}
+                  </label>
                 {thumbnailPreview ? (
                   <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
                     <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
@@ -608,10 +623,13 @@ export default function App() {
                   </label>
                 )}
               </div>
-              {createType === 'video' && (
+              )}
+              {(createType === 'video' || createType === 'story') && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Upload Video *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {createType === 'story' ? 'Or Upload Story Media (Video)' : 'Upload Video *'}
+                    </label>
                     {videoPreview ? (
                       <div className="relative w-full rounded-xl overflow-hidden border border-gray-200 bg-black">
                         <video src={videoPreview} controls className="w-full max-h-[300px] object-contain" />
@@ -664,10 +682,12 @@ export default function App() {
                       </label>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
-                    <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30 (auto-detected from video)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
+                  {createType !== 'story' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
+                      <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30 (auto-detected from video)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -699,7 +719,7 @@ export default function App() {
                       Schedule
                     </button>
                     
-                    <button onClick={() => handleAction('PUBLISHED')} disabled={isPublishing || !createTitle.trim() || !createContent.trim() || !createCategory} className="flex-1 sm:flex-none px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <button onClick={() => handleAction('PUBLISHED')} disabled={isPublishing || (createType !== 'story' && (!createTitle.trim() || !createContent.trim() || !createCategory))} className="flex-1 sm:flex-none px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
                       {isPublishing ? (
                         <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Saving...</>
                       ) : 'Publish'}
