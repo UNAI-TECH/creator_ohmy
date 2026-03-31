@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Filter, Eye, Globe2, AlertCircle, FileText, Newspaper, Video, TrendingUp,
-  MessageSquare, ThumbsUp, ChevronDown, Trash2, Search
+  MessageSquare, ThumbsUp, ThumbsDown, ChevronDown, Trash2, Search
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { contentService, CreatorPost } from '../services/contentService';
+import { useModal } from '../context/ModalContext';
+import { useToast } from '../context/ToastContext';
 
 const tabs = ['All', 'Blogs', 'News', 'Videos'];
 
@@ -34,6 +36,8 @@ export default function Content() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectAll, setSelectAll] = useState(false);
+  const { confirm } = useModal();
+  const { success, error: showToastError } = useToast();
   
   const fetchPosts = async () => {
     setLoading(true);
@@ -56,12 +60,21 @@ export default function Content() {
   }, []);
 
   const handleDelete = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this content? This cannot be undone.')) return;
+    const isConfirmed = await confirm({
+      title: 'Delete content',
+      message: 'Are you sure you want to delete this content? This action cannot be undone.',
+      confirmText: 'Delete',
+      type: 'danger'
+    });
+    
+    if (!isConfirmed) return;
+    
     try {
       await contentService.deletePost(postId);
       setPosts(prev => prev.filter(p => p.id !== postId));
+      success('Content deleted successfully.');
     } catch (e) {
-      alert('Failed to delete. Please try again.');
+      showToastError('Failed to delete content.');
     }
   };
 
@@ -141,13 +154,15 @@ export default function Content() {
                 <table className="w-full text-left border-collapse min-w-[1000px]">
                   <thead>
                     <tr className="border-b border-gray-200 text-sm text-[#606060] bg-white">
-                      <th className="py-4 px-6 font-medium w-[45%]">Content</th>
-                      <th className="py-4 px-6 font-medium w-[12%]">Type</th>
-                      <th className="py-4 px-6 font-medium w-[12%]">Status</th>
-                      <th className="py-4 px-6 font-medium w-[12%]">Date</th>
-                      <th className="py-4 px-6 font-medium text-right w-[8%]">Votes</th>
-                      <th className="py-4 px-6 font-medium text-right w-[8%]">Comments</th>
-                      <th className="py-4 px-6 font-medium text-right w-[5%]"></th>
+                      <th className="py-4 px-6 font-medium w-[30%]">Content</th>
+                      <th className="py-4 px-6 font-medium w-[10%]">Type</th>
+                      <th className="py-4 px-6 font-medium w-[10%]">Status</th>
+                      <th className="py-4 px-6 font-medium w-[15%]">Date</th>
+                      <th className="py-4 px-4 font-medium text-right w-[6%]">Views</th>
+                      <th className="py-4 px-4 font-medium text-right w-[6%]">Likes</th>
+                      <th className="py-4 px-4 font-medium text-right w-[6%]">Dislikes</th>
+                      <th className="py-4 px-4 font-medium text-right w-[6%]">Comments</th>
+                      <th className="py-4 px-4 font-medium text-right w-[11%]"></th>
                     </tr>
                   </thead>
                   <tbody className="text-sm divide-y divide-gray-100 bg-white">
@@ -198,13 +213,19 @@ export default function Content() {
                             <div className="text-xs font-bold">{formatDate(post.created_at)}</div>
                             <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">Published</div>
                           </td>
-                          <td className="py-4 px-6 align-top pt-8 text-right font-black text-gray-900">
-                            {post.vote_count}
+                          <td className="py-4 px-4 align-top pt-8 text-right font-black text-gray-900 border-l border-gray-50/50">
+                            <div className="flex items-center justify-end gap-1.5"><Eye className="w-3.5 h-3.5 text-gray-400" />{post.view_count}</div>
                           </td>
-                          <td className="py-4 px-6 align-top pt-8 text-right font-black text-gray-900">
-                            {post.comment_count}
+                          <td className="py-4 px-4 align-top pt-8 text-right font-black text-gray-900">
+                            <div className="flex items-center justify-end gap-1.5"><ThumbsUp className="w-3.5 h-3.5 text-blue-500" />{post.like_count}</div>
                           </td>
-                          <td className="py-4 px-6 align-top pt-6 text-right">
+                          <td className="py-4 px-4 align-top pt-8 text-right font-black text-gray-900">
+                            <div className="flex items-center justify-end gap-1.5"><ThumbsDown className="w-3.5 h-3.5 text-red-500" />{post.dislike_count}</div>
+                          </td>
+                          <td className="py-4 px-4 align-top pt-8 text-right font-black text-gray-900">
+                            <div className="flex items-center justify-end gap-1.5"><MessageSquare className="w-3.5 h-3.5 text-amber-500" />{post.comment_count}</div>
+                          </td>
+                          <td className="py-4 px-4 align-top pt-6 text-right">
                             <button 
                               onClick={() => handleDelete(post.id)} 
                               className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-full transition-colors opacity-0 group-hover:opacity-100"
@@ -257,13 +278,23 @@ export default function Content() {
                       </div>
                       
                       <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100/50">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp className="w-3.5 h-3.5 text-red-500" />
-                            <span className="text-gray-900">{post.vote_count}</span>
+                        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                          <div className="flex items-center gap-1.5 min-w-max">
+                            <Eye className="w-3.5 h-3.5 text-gray-500" />
+                            <span className="text-gray-900">{post.view_count}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+                          <div className="w-px h-3 bg-gray-300"></div>
+                          <div className="flex items-center gap-1.5 min-w-max">
+                            <ThumbsUp className="w-3.5 h-3.5 text-blue-500" />
+                            <span className="text-gray-900">{post.like_count}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 min-w-max">
+                            <ThumbsDown className="w-3.5 h-3.5 text-red-500" />
+                            <span className="text-gray-900">{post.dislike_count}</span>
+                          </div>
+                          <div className="w-px h-3 bg-gray-300"></div>
+                          <div className="flex items-center gap-1.5 min-w-max">
+                            <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
                             <span className="text-gray-900">{post.comment_count}</span>
                           </div>
                         </div>

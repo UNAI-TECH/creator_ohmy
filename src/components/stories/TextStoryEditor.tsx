@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Send, Smile, Type, Palette, Loader2 } from 'lucide-react';
 import { storyService } from '../../services/storyService';
 import { cn } from '../../lib/utils';
+import { useToast } from '../../context/ToastContext';
 
 const COLORS = [
   '#E91E63', // Red/Pink
@@ -22,6 +23,7 @@ export default function TextStoryEditor({ onClose, onSuccess }: TextStoryEditorP
   const [text, setText] = useState('');
   const [colorIndex, setColorIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const { success, error } = useToast();
 
   const cycleColor = () => {
     setColorIndex((colorIndex + 1) % COLORS.length);
@@ -36,9 +38,10 @@ export default function TextStoryEditor({ onClose, onSuccess }: TextStoryEditorP
         textContent: text.trim(),
         backgroundColor: COLORS[colorIndex],
       });
+      success('Text story posted successfully!');
       onSuccess();
     } catch (err: any) {
-      alert('Failed: ' + err.message);
+      error('Failed: ' + err.message);
     } finally {
       setIsUploading(false);
     }

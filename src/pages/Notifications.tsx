@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle2, Search, MoreVertical, Trash2, CheckSquare, Square } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { notificationService, CreatorNotification } from '../services/notificationService';
+import { useModal } from '../context/ModalContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<CreatorNotification[]>([]);
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const { confirm } = useModal();
+  const { success, error: showToastError } = useToast();
   
   // Selection state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -77,19 +81,25 @@ export default function Notifications() {
   const handleDeleteSelected = async () => {
     if (selectedIds.size === 0) return;
     const count = selectedIds.size;
-    if (!confirm(`Delete ${count} selected notifications?`)) return;
+    const isConfirmed = await confirm({
+      title: 'Delete Notifications',
+      message: `Are you sure you want to delete ${count} selected notifications?`,
+      confirmText: 'Delete',
+      type: 'danger'
+    });
+    
+    if (!isConfirmed) return;
     
     try {
       setLoading(true);
       const idsToDelete = Array.from(selectedIds) as string[];
-      console.log('Deleting notification IDs:', idsToDelete);
       await notificationService.deleteNotifications(idsToDelete);
       setSelectedIds(new Set());
       setIsSelectionMode(false);
       await fetchNotifs();
+      success(`${count} notifications deleted.`);
     } catch (e) {
-      console.error('Delete error:', e);
-      alert('Failed to delete notifications. Please try again.');
+      showToastError('Failed to delete notifications.');
     } finally {
       setLoading(false);
     }
@@ -97,12 +107,21 @@ export default function Notifications() {
   };
 
   const handleDeleteAll = async () => {
-    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    const isConfirmed = await confirm({
+      title: 'Clear Notifications',
+      message: 'Are you sure you want to delete all notifications? This cannot be undone.',
+      confirmText: 'Clear All',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
+
     try {
       await notificationService.deleteAllNotifications();
       fetchNotifs();
+      success('All notifications cleared.');
     } catch (e) {
-      alert('Failed to delete all notifications');
+      showToastError('Failed to clear notifications.');
     }
     setShowGlobalMenu(false);
   };

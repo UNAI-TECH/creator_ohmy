@@ -11,6 +11,8 @@ export interface Story {
   created_at: string;
   expires_at: string;
   viewers_count: number;
+  allow_comments?: boolean;
+  allow_sharing?: boolean;
 }
 
 export const storyService = {
@@ -20,6 +22,8 @@ export const storyService = {
     textContent?: string;
     caption?: string;
     backgroundColor?: string;
+    allow_comments?: boolean;
+    allow_sharing?: boolean;
   }) {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
@@ -34,6 +38,8 @@ export const storyService = {
         type: payload.type,
         caption: payload.caption,
         background_color: payload.backgroundColor,
+        allow_comments: payload.allow_comments ?? true,
+        allow_sharing: payload.allow_sharing ?? true,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       })
       .select()

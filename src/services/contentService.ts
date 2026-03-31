@@ -27,7 +27,9 @@ export interface CreatorPost {
   published: boolean;
   created_at: string;
   updated_at: string;
-  vote_count: number;
+  like_count: number;
+  dislike_count: number;
+  view_count: number;
   comment_count: number;
   visibility: string;
 }
@@ -37,6 +39,8 @@ export interface CreatorStats {
   totalViews: number;
   totalComments: number;
   totalVotes: number;
+  totalLikes: number;
+  totalDislikes: number;
   totalFollowers: number;
   blogCount: number;
   newsCount: number;
@@ -57,7 +61,9 @@ export interface CreatorComment {
     full_name: string | null;
   };
   likes: number;
+  dislikes: number;
   hearted: boolean;
+  parentId: string | null;
 }
 
 export const contentService = {
@@ -105,30 +111,38 @@ export const contentService = {
 
     const { data, error } = await supabase
       .from('Post')
-      .select('*, Vote(type), Comment(id)')
+      .select('*, Vote(type), Comment(id), PostView(id)')
       .eq('authorId', user.id)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
-    return (data || []).map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      type: post.type?.toLowerCase() || 'blog',
-      category: post.category || 'General',
-      thumbnail: post.thumbnail,
-      video_url: post.videoUrl || null,
-      video_duration: post.videoDuration,
-      status: post.status || 'PUBLISHED',
-      scheduledFor: post.scheduledFor,
-      published: post.published !== false,
-      created_at: post.createdAt,
-      updated_at: post.updatedAt,
-      vote_count: post.Vote?.length || 0,
-      comment_count: post.Comment?.length || 0,
-      visibility: 'Public',
-    }));
+    return (data || []).map((post: any) => {
+      const likes = post.Vote?.filter((v: any) => v.type === 1).length || 0;
+      const dislikes = post.Vote?.filter((v: any) => v.type === -1).length || 0;
+      const views = post.PostView?.length || 0;
+
+      return {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        type: post.type?.toLowerCase() || 'blog',
+        category: post.category || 'General',
+        thumbnail: post.thumbnail,
+        video_url: post.videoUrl || null,
+        video_duration: post.videoDuration,
+        status: post.status || 'PUBLISHED',
+        scheduledFor: post.scheduledFor,
+        published: post.published !== false,
+        created_at: post.createdAt,
+        updated_at: post.updatedAt,
+        like_count: likes,
+        dislike_count: dislikes,
+        view_count: views,
+        comment_count: post.Comment?.length || 0,
+        visibility: 'Public',
+      };
+    });
   },
 
   async getMyStats(): Promise<CreatorStats> {
@@ -138,18 +152,26 @@ export const contentService = {
 
     const { data: posts, error } = await supabase
       .from('Post')
-      .select('id, type, Vote(type), Comment(id)')
+      .select('id, type, Vote(type), Comment(id), PostView(id)')
       .eq('authorId', user.id);
 
     if (error) throw error;
 
     const allPosts = posts || [];
     let totalVotes = 0;
+    let totalLikes = 0;
+    let totalDislikes = 0;
     let totalComments = 0;
+    let totalPostViews = 0;
 
     allPosts.forEach((p: any) => {
         totalVotes += p.Vote?.length || 0;
         totalComments += p.Comment?.length || 0;
+        totalPostViews += p.PostView?.length || 0;
+        p.Vote?.forEach((v: any) => {
+          if (v.type === 1) totalLikes++;
+          else if (v.type === -1) totalDislikes++;
+        });
     });
 
     // Get follower count
@@ -158,11 +180,22 @@ export const contentService = {
       .select('id', { count: 'exact', head: true })
       .eq('followingId', user.id);
 
+    // Get story views sum
+    const { data: stories } = await supabase
+      .from('stories')
+      .select('viewers_count')
+      .eq('creator_id', user.id);
+      
+    let storyViews = 0;
+    (stories || []).forEach((s: any) => storyViews += (s.viewers_count || 0));
+
     return {
       totalPosts: allPosts.length,
-      totalViews: totalVotes, // proxy
+      totalViews: totalPostViews + storyViews, // Real post views + actual Story views
       totalComments,
       totalVotes,
+      totalLikes,
+      totalDislikes,
       totalFollowers: followerCount || 0,
       blogCount: allPosts.filter((p: any) => p.type === 'BLOG').length,
       newsCount: allPosts.filter((p: any) => p.type === 'NEWS').length,
@@ -207,9 +240,76 @@ export const contentService = {
         avatar_url: c.User?.avatarUrl || null,
         full_name: c.User?.username || null,
       },
-      likes: 0,
-      hearted: false,
+      likes: c.upvotes || 0,
+      dislikes: c.downvotes || 0,
+      hearted: c.creatorLiked || false,
+      parentId: c.parentId || null,
     }));
+  },
+
+  async toggleCommentHeart(commentId: string, currentHeartState: boolean) {
+    const { error } = await supabase
+      .from('Comment')
+      .update({ creatorLiked: !currentHeartState })
+      .eq('id', commentId);
+    if (error) throw error;
+  },
+
+  async deleteComment(commentId: string) {
+    const { error } = await supabase
+      .from('Comment')
+      .delete()
+      .eq('id', commentId);
+    if (error) throw error;
+  },
+
+  async replyToComment(postId: string, parentId: string, content: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) throw new Error('Not authenticated');
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('Comment')
+      .insert({
+        id: crypto.randomUUID(),
+        postId,
+        userId: user.id,
+        content,
+        parentId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    if (error) throw error;
+  },
+
+  async voteComment(commentId: string, voteType: 1 | -1) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) throw new Error('Not authenticated');
+
+    // Check if vote exists
+    const { data: existing } = await supabase
+      .from('CommentVote')
+      .select('id, type')
+      .eq('userId', user.id)
+      .eq('commentId', commentId)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.type === voteType) {
+        await supabase.from('CommentVote').delete().eq('id', existing.id);
+      } else {
+        await supabase.from('CommentVote').update({ type: voteType }).eq('id', existing.id);
+      }
+    } else {
+      await supabase.from('CommentVote').insert({
+        id: crypto.randomUUID(),
+        commentId,
+        userId: user.id,
+        type: voteType,
+      });
+    }
   },
 
   async updatePost(postId: string, updates: Partial<PostData>) {

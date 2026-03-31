@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Menu, Search, Video, Bell, LayoutDashboard,
   PlaySquare, BarChart2, MessageSquare, Subtitles as SubtitlesIcon,
-  DollarSign, Settings as SettingsIcon, Send, Upload, Wand2, LogOut,
+  IndianRupee, Settings as SettingsIcon, Send, Upload, Wand2, LogOut,
   X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User, Film,
   Aperture, Clock
 } from 'lucide-react';
@@ -18,6 +18,7 @@ import RichTextEditor from './components/RichTextEditor';
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
 import StoriesPage from './pages/Stories';
+import { useToast } from './context/ToastContext';
 import Comments from './pages/Comments';
 import Subtitles from './pages/Subtitles';
 import Earn from './pages/Earn';
@@ -56,6 +57,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const { success, error, toast } = useToast();
   const [applicantEmail, setApplicantEmail] = useState<string>(
     localStorage.getItem('omh_applicant_email') || ''
   );
@@ -167,7 +169,7 @@ export default function App() {
 
   const handleAction = async (action: 'PUBLISHED' | 'ARCHIVED' | 'SCHEDULED') => {
     if (!createTitle.trim() || !createContent.trim() || !createCategory) {
-      alert('Please fill in title, content, and category.');
+      error('Please fill in title, content, and category.');
       return;
     }
     setIsPublishing(true);
@@ -200,16 +202,16 @@ export default function App() {
       
       if (action === 'PUBLISHED') {
         setActivePage('Content');
-        alert('🎉 Published successfully! Your content is now live.');
+        success('🎉 Published successfully! Your content is now live.');
       } else if (action === 'ARCHIVED') {
         setActivePage('Profile');
-        alert('Saved to Archive.');
+        success('Saved to Archive.');
       } else if (action === 'SCHEDULED') {
         setActivePage('Profile');
-        alert('Post scheduled successfully.');
+        success('Post scheduled successfully.');
       }
     } catch (e: any) {
-      alert('Action failed: ' + (e.message || 'Unknown error'));
+      error('Action failed: ' + (e.message || 'Unknown error'));
     } finally {
       setIsPublishing(false);
       setIsScheduling(false);
@@ -232,10 +234,10 @@ export default function App() {
         createdAt: new Date().toISOString(),
         status: 'pending'
       });
-      alert('Feedback submitted successfully!');
+      success('Feedback submitted successfully!');
       setFeedbackText('');
     } catch (err: any) {
-      alert('Failed to submit feedback: ' + err.message);
+      error('Failed to submit feedback: ' + err.message);
     } finally {
       setIsSubmittingFeedback(false);
     }
@@ -318,7 +320,7 @@ export default function App() {
             <SidebarItem icon={Aperture} label="Stories" active={activePage === 'Stories'} onClick={() => navigateTo('Stories')} />
             <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => navigateTo('Comments')} />
             <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => navigateTo('Subtitles')} />
-            <SidebarItem icon={DollarSign} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
+            <SidebarItem icon={IndianRupee} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
             <SidebarItem icon={Bell} label="Notifications" active={activePage === 'Notifications'} onClick={() => navigateTo('Notifications')} />
             <SidebarItem icon={User} label="Profile" active={activePage === 'Profile'} onClick={() => navigateTo('Profile')} />
           </div>

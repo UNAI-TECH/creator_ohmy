@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { contentService, CreatorComment } from '../services/contentService';
+import { supabase } from '../lib/supabaseClient';
 
 const tabs = ['Published'];
 
@@ -34,6 +35,8 @@ export default function Comments() {
     setLoading(true);
     try {
       const data = await contentService.getMyComments();
+      // Group by top-level vs replies (optional, usually dashboard just shows them straight)
+      // We will just show them straight but maybe indent replies later.
       setComments(data);
     } catch (e) {
       console.warn('Failed to fetch comments:', e);
@@ -42,17 +45,67 @@ export default function Comments() {
     }
   };
 
-  useEffect(() => { fetchComments(); }, []);
+  useEffect(() => {
+    fetchComments();
+    
+    // Subscribe to any changes in Comments or Votes
+    const channel = supabase
+      .channel('creator-comments-dash')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Comment' }, () => {
+        fetchComments();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'CommentVote' }, () => {
+        fetchComments();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
-  const toggleHeart = (id: string) => {
+  const toggleHeart = async (id: string, currentState: boolean) => {
+    // Optimistic
     setComments(comments.map(c => c.id === id ? { ...c, hearted: !c.hearted } : c));
+    try {
+      await contentService.toggleCommentHeart(id, currentState);
+    } catch (e) {
+      setComments(comments); // simple rollback
+    }
   };
 
-  const handleReplySubmit = (e: React.FormEvent, id: string) => {
+  const handleReplySubmit = async (e: React.FormEvent, parentId: string, postId: string) => {
     e.preventDefault();
     if (!replyText.trim()) return;
+    const txt = replyText;
     setReplyingTo(null);
     setReplyText('');
+    try {
+      await contentService.replyToComment(postId, parentId, txt);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleVote = async (id: string, type: 1 | -1) => {
+    try {
+      await contentService.voteComment(id, type);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this comment? It will also be removed from the app.")) return;
+    
+    // Optimistic
+    setComments(comments.filter(c => c.id !== id));
+    try {
+      await contentService.deleteComment(id);
+    } catch (e) {
+      console.error(e);
+      fetchComments(); // rollback
+    }
   };
 
   const filtered = comments.filter(c => {
@@ -163,15 +216,8 @@ export default function Comments() {
 
                   {/* Actions Toolbar */}
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <button className="p-2 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5" title="Like">
-                      <ThumbsUp className="w-4 h-4" />
-                      {comment.likes > 0 && <span className="text-xs font-medium">{comment.likes}</span>}
-                    </button>
-                    <button className="p-2 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-900 transition-colors" title="Dislike">
-                      <ThumbsDown className="w-4 h-4" />
-                    </button>
                     <button 
-                      onClick={() => toggleHeart(comment.id)} 
+                      onClick={() => toggleHeart(comment.id, comment.hearted)} 
                       className={cn(
                         "p-2 rounded-full transition-colors",
                         comment.hearted ? "text-red-500 hover:bg-red-50" : "text-gray-500 hover:text-red-500 hover:bg-red-50"
@@ -179,6 +225,14 @@ export default function Comments() {
                       title={comment.hearted ? "Remove heart" : "Heart comment"}
                     >
                       <Heart className={cn("w-4 h-4", comment.hearted && "fill-current")} />
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleDeleteComment(comment.id)} 
+                      className="p-2 ml-1 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete comment"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                     
                     <div className="w-px h-4 bg-gray-200 mx-2 hidden sm:block"></div>
@@ -197,7 +251,7 @@ export default function Comments() {
                     <div className="mt-4 flex gap-3 animate-in slide-in-from-top-2 fade-in duration-200">
                        <CornerDownRight className="w-5 h-5 text-gray-300 shrink-0 mt-3" />
                        <div className="flex-1 bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all">
-                         <form onSubmit={(e) => handleReplySubmit(e, comment.id)}>
+                         <form onSubmit={(e) => handleReplySubmit(e, comment.id, comment.post_id)}>
                            <textarea 
                              className="w-full bg-transparent border-none focus:ring-0 p-3 text-sm text-gray-800 resize-none outline-none min-h-[80px]"
                              placeholder="Add a public reply..."

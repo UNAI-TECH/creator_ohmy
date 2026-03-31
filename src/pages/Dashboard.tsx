@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  ArrowUpRight, ArrowDownRight, Eye, Clock, FileText, Newspaper, Video, Users, ThumbsUp, MessageSquare, TrendingUp
+  ArrowUpRight, ArrowDownRight, Eye, Clock, FileText, Newspaper, Video, Users, ThumbsUp, ThumbsDown, MessageSquare, TrendingUp
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { contentService, CreatorPost, CreatorStats } from '../services/contentService';
@@ -83,8 +83,8 @@ export default function Dashboard() {
   // Build chart data from recent posts (last 7 posts as data points)
   const chartData = recentPosts.slice(0, 7).reverse().map(p => ({
     name: new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    votes: p.vote_count,
-    comments: p.comment_count,
+    likes: p.like_count || 0,
+    comments: p.comment_count || 0,
   }));
 
   if (loading) {
@@ -115,9 +115,9 @@ export default function Dashboard() {
               color="#8B5CF6" 
             />
             <StatCard 
-              icon={ThumbsUp} 
-              label="Total Votes" 
-              value={formatNumber(stats?.totalVotes || 0)} 
+              icon={Eye} 
+              label="Total Views" 
+              value={formatNumber(stats?.totalViews || 0)} 
               color="#EF4444" 
             />
             <StatCard 
@@ -151,12 +151,18 @@ export default function Dashboard() {
             <span className="text-sm text-gray-400">Based on recent posts</span>
           }>
             <div className="flex flex-col h-full">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="text-sm text-gray-600 flex items-center gap-2">
-                    <ThumbsUp className="w-4 h-4" /> Votes
+                    <ThumbsUp className="w-4 h-4" /> Likes
                   </div>
-                  <div className="text-2xl font-medium text-gray-900 mt-2">{formatNumber(stats?.totalVotes || 0)}</div>
+                  <div className="text-2xl font-medium text-gray-900 mt-2">{formatNumber(stats?.totalLikes || 0)}</div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="text-sm text-gray-600 flex items-center gap-2">
+                    <ThumbsDown className="w-4 h-4" /> Dislikes
+                  </div>
+                  <div className="text-2xl font-medium text-gray-900 mt-2">{formatNumber(stats?.totalDislikes || 0)}</div>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="text-sm text-gray-600 flex items-center gap-2">
@@ -168,7 +174,7 @@ export default function Dashboard() {
 
               {chartData.length > 0 ? (
                 <div className="h-[250px] -ml-4 w-full relative" style={{ minHeight: '250px' }}>
-                  <ResponsiveContainer width="99%" height="100%" debounce={1}>
+                  <ResponsiveContainer width="99%" height="100%" debounce={1} minWidth={0} minHeight={0}>
                     <AreaChart data={chartData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorVotes" x1="0" y1="0" x2="0" y2="1">
@@ -182,7 +188,7 @@ export default function Dashboard() {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                         itemStyle={{ fontWeight: 500 }}
                       />
-                      <Area type="monotone" dataKey="votes" stroke="#EF4444" strokeWidth={2} fillOpacity={1} fill="url(#colorVotes)" name="Votes" />
+                      <Area type="monotone" dataKey="likes" stroke="#EF4444" strokeWidth={2} fillOpacity={1} fill="url(#colorVotes)" name="Likes" />
                       <Area type="monotone" dataKey="comments" stroke="#0EA5E9" strokeWidth={2} fillOpacity={0.1} fill="#0EA5E9" name="Comments" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -205,7 +211,7 @@ export default function Dashboard() {
                     <tr className="border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                       <th className="pb-4 px-4 w-1/2">Content</th>
                       <th className="pb-4 px-4">Type</th>
-                      <th className="pb-4 px-4 text-right">Votes</th>
+                      <th className="pb-4 px-4 text-right">Views</th>
                       <th className="pb-4 px-4 text-right">Comments</th>
                       <th className="pb-4 px-4 text-right">Date</th>
                     </tr>
@@ -243,8 +249,8 @@ export default function Dashboard() {
                                 {post.type}
                               </span>
                             </td>
-                            <td className="py-4 px-4 text-right font-black text-gray-900">{post.vote_count}</td>
-                            <td className="py-4 px-4 text-right font-black text-gray-900">{post.comment_count}</td>
+                            <td className="py-4 px-4 text-right font-black text-gray-900">{post.view_count || 0}</td>
+                            <td className="py-4 px-4 text-right font-black text-gray-900">{post.comment_count || 0}</td>
                             <td className="py-4 px-4 text-right text-gray-500 whitespace-nowrap text-xs font-bold">
                               {formatDate(post.created_at)}
                             </td>
@@ -278,8 +284,8 @@ export default function Dashboard() {
                           <h4 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight mb-1">{post.title}</h4>
                           <div className="flex items-center justify-between mt-2">
                              <div className="flex items-center gap-2">
-                               <ThumbsUp className="w-3.5 h-3.5 text-red-500" />
-                               <span className="text-xs font-black text-gray-900">{post.vote_count}</span>
+                               <Eye className="w-3.5 h-3.5 text-red-500" />
+                               <span className="text-xs font-black text-gray-900">{post.view_count || 0}</span>
                              </div>
                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{post.type}</span>
                           </div>

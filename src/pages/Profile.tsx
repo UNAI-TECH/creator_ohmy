@@ -5,6 +5,7 @@ import {
 import { cn } from '../lib/utils';
 import { profileService } from '../services/profileService';
 import { contentService } from '../services/contentService';
+import { useToast } from '../context/ToastContext';
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState('PUBLISHED');
@@ -12,6 +13,7 @@ export default function Profile() {
   const [stats, setStats] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { success, error: showToastError } = useToast();
   
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -52,9 +54,9 @@ export default function Profile() {
         await profileService.updateProfile({ coverUrl: url });
         setProfile({ ...profile, coverUrl: url }); 
       }
+      success('Profile image updated!');
     } catch (err) {
-      console.error('Upload failed', err);
-      alert('Failed to upload image. Check permissions.');
+      showToastError('Failed to upload image.');
     }
   };
 
