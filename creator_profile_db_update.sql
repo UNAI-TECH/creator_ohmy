@@ -1,0 +1,3 @@
+ALTER TABLE public."User"
+ADD COLUMN IF NOT EXISTS username_updated_at TIMESTAMP NULL,
+ADD COLUMN IF NOT EXISTS channel_name TEXT NULL;

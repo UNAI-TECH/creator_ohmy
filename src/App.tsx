@@ -31,7 +31,7 @@ import LoginPage from './pages/LoginPage';
 
 const CATEGORIES = [
   'Politics', 'Economy', 'Digital India', 'Policy', 'Viksit Bharat',
-  'Sports', 'Entertainment', 'Technology', 'Health', 'Education', 'General'
+  'Sports', 'Entertainment', 'Technology', 'Health', 'Education', 'General', 'Custom'
 ];
 
 const SidebarItem = ({ icon: Icon, label, active = false, onClick, danger = false }: { icon: any, label: string, active?: boolean, onClick?: () => void, danger?: boolean }) => (
@@ -65,12 +65,13 @@ export default function App() {
   // Create Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createType, setCreateType] = useState<'blog' | 'news' | 'video' | 'story'>('blog');
+  const [createType, setCreateType] = useState<'blog' | 'news' | 'video' | 'update'>('blog');
   
   // Create form state
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
   const [createCategory, setCreateCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
   const [createThumbnailFile, setCreateThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [createVideoDuration, setCreateVideoDuration] = useState('');
@@ -160,6 +161,7 @@ export default function App() {
     setCreateTitle('');
     setCreateContent('');
     setCreateCategory('');
+    setCustomCategory('');
     setCreateThumbnailFile(null);
     setThumbnailPreview(null);
     setCreateVideoDuration('');
@@ -168,8 +170,16 @@ export default function App() {
   };
 
   const handleAction = async (action: 'PUBLISHED' | 'ARCHIVED' | 'SCHEDULED') => {
-    if (!createTitle.trim() || !createContent.trim() || !createCategory) {
+    if (!createTitle.trim() || !createContent.trim() || (!createCategory && createType !== 'video')) {
       error('Please fill in title, content, and category.');
+      return;
+    }
+    if (!createThumbnailFile && !thumbnailPreview) {
+      error('Please upload a thumbnail image.');
+      return;
+    }
+    if (createCategory === 'Custom' && !customCategory.trim()) {
+      error('Please enter a custom category name.');
       return;
     }
     setIsPublishing(true);
@@ -191,7 +201,8 @@ export default function App() {
         title: createTitle.trim(),
         content: createContent,
         type: createType,
-        category: createCategory,
+        category: createCategory === 'Custom' ? 'custom' : createCategory,
+        custom_category: createCategory === 'Custom' ? customCategory.trim() : undefined,
         thumbnail: thumbnailUrl,
         video_url: videoUrl,
         video_duration: createType === 'video' ? createVideoDuration.trim() || undefined : undefined,
@@ -386,7 +397,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className={cn("flex-1 overflow-y-auto", activePage === 'Profile' ? "p-0" : "p-4 sm:p-6 lg:p-8")}>
           {activePage === 'Dashboard' && <Dashboard />}
           {activePage === 'Content' && <Content />}
           {activePage === 'Stories' && <StoriesPage />}
@@ -394,7 +405,7 @@ export default function App() {
           {activePage === 'Subtitles' && <Subtitles />}
           {activePage === 'Earn' && <Earn />}
           {activePage === 'Notifications' && <Notifications />}
-          {activePage === 'Profile' && <Profile />}
+          {activePage === 'Profile' && <Profile onCreatePost={() => setShowCreateModal(true)} />}
           {activePage === 'Settings' && (
             <div className="max-w-[800px] mx-auto animate-in fade-in duration-300">
               <h1 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-tight">Settings</h1>
@@ -512,8 +523,8 @@ export default function App() {
             </div>
             <div className="p-4 space-y-3">
               {[
-                { type: 'blog' as const, icon: FileText, label: 'Blog Post', desc: 'Write an article or story', color: '#8B5CF6' },
-                { type: 'news' as const, icon: Newspaper, label: 'News Article', desc: 'Share breaking news or updates', color: '#0EA5E9' },
+                { type: 'blog' as const, icon: FileText, label: 'Headlines', desc: 'Write an article or story', color: '#8B5CF6' },
+                { type: 'news' as const, icon: Newspaper, label: 'Article', desc: 'Share breaking news or updates', color: '#0EA5E9' },
                 { type: 'video' as const, icon: Video, label: 'Video', desc: 'Upload a video report', color: '#EF4444' },
               ].map(opt => (
                 <button key={opt.type} onClick={() => handleCreateSelect(opt.type)} className="w-full flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all text-left group">
@@ -538,14 +549,13 @@ export default function App() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: (createType === 'blog' ? '#8B5CF6' : createType === 'news' ? '#0EA5E9' : createType === 'story' ? '#F59E0B' : '#EF4444') + '15' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: (createType === 'blog' ? '#8B5CF6' : createType === 'news' ? '#0EA5E9' : '#EF4444') + '15' }}>
                   {createType === 'blog' && <FileText className="w-4 h-4 text-[#8B5CF6]" />}
                   {createType === 'news' && <Newspaper className="w-4 h-4 text-[#0EA5E9]" />}
                   {createType === 'video' && <Video className="w-4 h-4 text-[#EF4444]" />}
-                  {createType === 'story' && <Aperture className="w-4 h-4 text-[#F59E0B]" />}
                 </div>
                 <h2 className="text-lg font-bold text-gray-900">
-                  New {createType === 'blog' ? 'Blog Post' : createType === 'news' ? 'News Article' : createType === 'story' ? 'Story' : 'Video'}
+                  New {createType === 'blog' ? 'Headline' : createType === 'news' ? 'Article' : 'Video'}
                 </h2>
               </div>
               <button onClick={() => setShowCreateForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -553,12 +563,10 @@ export default function App() {
               </button>
             </div>
             <div className="p-6 space-y-5">
-              {createType !== 'story' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                    <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+              </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
                     <div className="flex flex-wrap gap-2">
@@ -566,6 +574,17 @@ export default function App() {
                         <button key={cat} onClick={() => setCreateCategory(cat)} className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-colors", createCategory === cat ? "bg-red-50 border-red-300 text-red-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100")}>{cat}</button>
                       ))}
                     </div>
+                    {createCategory === 'Custom' && (
+                      <div className="mt-3 animate-in slide-in-from-top-2 duration-200">
+                        <input 
+                          type="text" 
+                          value={customCategory} 
+                          onChange={e => setCustomCategory(e.target.value)} 
+                          placeholder="Enter custom category name..." 
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none transition-all"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
@@ -576,12 +595,9 @@ export default function App() {
                       minHeight="200px"
                     />
                   </div>
-                </>
-              )}
-              {createType !== 'video' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {createType === 'story' ? 'Story Media (Image) *' : 'Thumbnail (optional)'}
+                    Thumbnail *
                   </label>
                 {thumbnailPreview ? (
                   <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
@@ -625,12 +641,11 @@ export default function App() {
                   </label>
                 )}
               </div>
-              )}
-              {(createType === 'video' || createType === 'story') && (
+              {createType === 'video' && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {createType === 'story' ? 'Or Upload Story Media (Video)' : 'Upload Video *'}
+                      Upload Video *
                     </label>
                     {videoPreview ? (
                       <div className="relative w-full rounded-xl overflow-hidden border border-gray-200 bg-black">
@@ -684,12 +699,10 @@ export default function App() {
                       </label>
                     )}
                   </div>
-                  {createType !== 'story' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
-                      <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30 (auto-detected from video)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
+                    <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30 (auto-detected from video)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                  </div>
                 </>
               )}
             </div>
@@ -721,7 +734,7 @@ export default function App() {
                       Schedule
                     </button>
                     
-                    <button onClick={() => handleAction('PUBLISHED')} disabled={isPublishing || (createType !== 'story' && (!createTitle.trim() || !createContent.trim() || !createCategory))} className="flex-1 sm:flex-none px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <button onClick={() => handleAction('PUBLISHED')} disabled={isPublishing || (!createTitle.trim() || !createContent.trim() || !createCategory || !createThumbnailFile)} className="flex-1 sm:flex-none px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
                       {isPublishing ? (
                         <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Saving...</>
                       ) : 'Publish'}

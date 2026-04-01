@@ -6,11 +6,13 @@ export interface PostData {
   content: string;
   type: 'blog' | 'video' | 'news' | 'update';
   category?: string;
+  custom_category?: string;
   thumbnail?: string;
   video_url?: string;
   video_duration?: string;
   status?: 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
   scheduledFor?: string;
+  is_active?: boolean;
 }
 
 export interface CreatorPost {
@@ -19,12 +21,14 @@ export interface CreatorPost {
   content: string;
   type: string;
   category: string;
+  custom_category: string | null;
   thumbnail: string | null;
   video_url: string | null;
   video_duration: string | null;
   status?: string;
   scheduledFor?: string;
   published: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   like_count: number;
@@ -83,11 +87,13 @@ export const contentService = {
       updatedAt: now,
     };
     if (postData.category) insertPayload.category = postData.category;
+    if (postData.custom_category) insertPayload.custom_category = postData.custom_category;
     if (postData.thumbnail) insertPayload.thumbnail = postData.thumbnail;
     if (postData.video_duration) insertPayload.videoDuration = postData.video_duration;
     if (postData.video_url) insertPayload.videoUrl = postData.video_url;
     if (postData.status) insertPayload.status = postData.status;
     if (postData.scheduledFor) insertPayload.scheduledFor = postData.scheduledFor;
+    if (postData.is_active !== undefined) insertPayload.is_active = postData.is_active;
 
     const { data, error } = await supabase
       .from('Post')
@@ -128,12 +134,14 @@ export const contentService = {
         content: post.content,
         type: post.type?.toLowerCase() || 'blog',
         category: post.category || 'General',
+        custom_category: post.custom_category || null,
         thumbnail: post.thumbnail,
         video_url: post.videoUrl || null,
         video_duration: post.videoDuration,
         status: post.status || 'PUBLISHED',
         scheduledFor: post.scheduledFor,
         published: post.published !== false,
+        is_active: post.is_active !== false,
         created_at: post.createdAt,
         updated_at: post.updatedAt,
         like_count: likes,
@@ -313,18 +321,21 @@ export const contentService = {
   },
 
   async updatePost(postId: string, updates: Partial<PostData>) {
-    const prismaUpdates: any = {};
-    if (updates.title) prismaUpdates.title = updates.title;
-    if (updates.content) prismaUpdates.content = updates.content;
-    if (updates.category) prismaUpdates.category = updates.category;
-    if (updates.thumbnail) prismaUpdates.thumbnail = updates.thumbnail;
-    if (updates.video_duration) prismaUpdates.videoDuration = updates.video_duration;
-    if (updates.status) prismaUpdates.status = updates.status;
-    if (updates.scheduledFor) prismaUpdates.scheduledFor = updates.scheduledFor;
+    const payload: any = {};
+    if (updates.title) payload.title = updates.title;
+    if (updates.content) payload.content = updates.content;
+    if (updates.category) payload.category = updates.category;
+    if (updates.custom_category !== undefined) payload.custom_category = updates.custom_category;
+    if (updates.thumbnail !== undefined) payload.thumbnail = updates.thumbnail;
+    if (updates.video_url !== undefined) payload.videoUrl = updates.video_url;
+    if (updates.video_duration !== undefined) payload.videoDuration = updates.video_duration;
+    if (updates.status) payload.status = updates.status;
+    if (updates.scheduledFor) payload.scheduledFor = updates.scheduledFor;
+    if (updates.is_active !== undefined) payload.is_active = updates.is_active;
 
     const { data, error } = await supabase
       .from('Post')
-      .update(prismaUpdates)
+      .update(payload)
       .eq('id', postId)
       .select()
       .single();

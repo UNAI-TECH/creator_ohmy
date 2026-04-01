@@ -1,13 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Camera, ExternalLink, Users, PlaySquare
+  Camera, ExternalLink, Users, PlaySquare, Eye
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { profileService } from '../services/profileService';
 import { contentService } from '../services/contentService';
 import { useToast } from '../context/ToastContext';
+import CropperModal from '../components/CropperModal';
+import EditProfileModal from '../components/EditProfileModal';
 
-export default function Profile() {
+interface ProfileProps {
+  onCreatePost?: () => void;
+}
+
+const formatNumber = (n: number) => {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return n.toString();
+};
+
+export default function Profile({ onCreatePost }: ProfileProps) {
   const [activeTab, setActiveTab] = useState('PUBLISHED');
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
@@ -17,6 +29,9 @@ export default function Profile() {
   
   const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [cropData, setCropData] = useState<{ src: string; type: 'avatar' | 'cover'; aspect: number; circular: boolean } | null>(null);
 
   const fetchProfileData = async () => {
     try {
@@ -44,19 +59,36 @@ export default function Profile() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      setCropData({
+        src: reader.result?.toString() || '',
+        type,
+        aspect: type === 'cover' ? 4 / 1 : 1, // Changed from 16:9 to 4:1 for a true banner look
+        circular: type === 'avatar'
+      });
+    });
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    if (!cropData) return;
     try {
-      const url = await contentService.uploadMedia(file, 'profiles');
-      if (type === 'avatar') {
+      const url = await contentService.uploadMedia(croppedFile, 'profiles');
+      if (cropData.type === 'avatar') {
         await profileService.updateProfile({ avatarUrl: url });
         setProfile({ ...profile, avatarUrl: url });
       } else {
-        // Save cover image URL to User table
         await profileService.updateProfile({ coverUrl: url });
         setProfile({ ...profile, coverUrl: url }); 
       }
       success('Profile image updated!');
+      setCropData(null);
     } catch (err) {
       showToastError('Failed to upload image.');
+      setCropData(null);
     }
   };
 
@@ -68,7 +100,7 @@ export default function Profile() {
   const avatarUrl = profile?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.username || 'U')}&background=E31E24&color=fff`;
 
   const displayedPosts = posts.filter(p => {
-    if (activeTab === 'PUBLISHED') return !p.status || p.status === 'PUBLISHED' || p.published;
+    if (activeTab === 'PUBLISHED') return (!p.status || p.status === 'PUBLISHED' || p.published) && p.is_active !== false;
     if (activeTab === 'SCHEDULED') return p.status === 'SCHEDULED';
     if (activeTab === 'ARCHIVED') return p.status === 'ARCHIVED';
     return false;
@@ -97,10 +129,11 @@ export default function Profile() {
         </button>
       </div>
 
-      <div className="px-6 sm:px-12 relative z-10">
-        <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
-          <div className="relative group -mt-16 sm:-mt-20">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-gray-100 flex items-center justify-center text-white text-5xl font-bold shadow-xl overflow-hidden">
+      <div className="px-6 lg:px-12 relative z-10 pb-8 border-b border-gray-100">
+        <div className="flex flex-col md:flex-row items-center md:items-end gap-8 text-center md:text-left">
+          {/* Avatar Container */}
+          <div className="relative group -mt-16 sm:-mt-24">
+            <div className="w-32 h-32 sm:w-44 sm:h-44 rounded-full border-4 border-white bg-white flex items-center justify-center shadow-2xl overflow-hidden group-hover:scale-[1.02] transition-all duration-300">
               <img 
                 src={avatarUrl} 
                 alt="Profile" 
@@ -113,24 +146,76 @@ export default function Profile() {
             />
             <button 
               onClick={() => avatarInputRef.current?.click()}
-              className="absolute bottom-2 right-2 p-2 bg-gray-900 text-white rounded-full border-2 border-white shadow-lg hover:scale-110 transition-transform"
+              className="absolute bottom-2 right-2 p-2.5 bg-gray-900 text-white rounded-full border-2 border-white shadow-xl hover:bg-black transition-all hover:scale-110"
+              title="Change Avatar"
             >
               <Camera className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex-1 pb-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{profile.username}</h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-gray-500 text-sm font-medium">@{profile.username?.toLowerCase().replace(/\s+/g, '')}</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-gray-500 text-sm font-medium">{stats?.totalFollowers || 0} subscribers</span>
+          {/* Profile Info */}
+          <div className="flex-1 min-w-0 pt-4 pb-1">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1 justify-center md:justify-start">
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
+                    {profile.channel_name || profile.username}
+                  </h1>
+                  <span className="hidden sm:inline px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded border border-blue-100">
+                    Verified Creator
+                  </span>
                 </div>
+                <p className="text-gray-500 text-base font-medium mb-4">@{profile.username}</p>
+                
+                {/* Modern Stats Bar */}
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-8 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-red-50 rounded-lg">
+                       <Users className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-900 leading-none">{formatNumber(stats?.totalFollowers || 0)}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Subscribers</span>
+                    </div>
+                  </div>
+                  <div className="h-8 w-px bg-gray-100 hidden sm:block"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-50 rounded-lg">
+                       <PlaySquare className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-900 leading-none">{formatNumber(stats?.totalPosts || 0)}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Content</span>
+                    </div>
+                  </div>
+                  <div className="h-8 w-px bg-gray-100 hidden sm:block"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-purple-50 rounded-lg">
+                       <Eye className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-900 leading-none">{formatNumber(stats?.totalViews || 0)}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Views</span>
+                    </div>
+                  </div>
+                </div>
+
                 {profile.bio && (
-                  <p className="text-sm text-gray-600 mt-2 max-w-md">{profile.bio}</p>
+                  <div className="relative group max-w-2xl mx-auto md:mx-0">
+                    <p className="text-sm text-gray-600 leading-relaxed break-words whitespace-pre-wrap pl-4 border-l-2 border-gray-100 group-hover:border-red-200 transition-colors">
+                      {profile.bio}
+                    </p>
+                  </div>
                 )}
+              </div>
+
+              <div className="flex flex-row items-center justify-center gap-3">
+                <button 
+                  onClick={() => setShowEditProfile(true)}
+                  className="px-6 py-3 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] active:scale-95"
+                >
+                  Edit Profile
+                </button>
               </div>
             </div>
           </div>
@@ -140,7 +225,7 @@ export default function Profile() {
       {/* Removed Community Callout */}
 
       {/* Content Section */}
-      <div className="mx-6 sm:mx-12 mt-12 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="mx-6 sm:mx-12 mt-12 rounded-3xl border border-gray-100 overflow-hidden">
         <div className="border-b border-gray-100 bg-gray-50/20 overflow-x-auto no-scrollbar">
           <nav className="flex px-4 sm:px-6 whitespace-nowrap" aria-label="Tabs">
             {['PUBLISHED', 'SCHEDULED', 'ARCHIVED'].map((tab) => (
@@ -195,13 +280,39 @@ export default function Profile() {
                   ? 'Posts appear here after you publish and will be visible to your community'
                   : `Any posts you save as ${activeTab.toLowerCase()} will appear here.`}
               </p>
-              <button className="mt-8 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-black tracking-wide transition-all shadow-lg shadow-red-100">
+              <button 
+                onClick={onCreatePost}
+                className="mt-8 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-black tracking-wide transition-all shadow-lg shadow-red-100"
+              >
                 CREATE POST
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      {cropData && (
+        <CropperModal
+          imageSrc={cropData.src}
+          aspectRatio={cropData.aspect}
+          circularCrop={cropData.circular}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setCropData(null)}
+        />
+      )}
+
+      {showEditProfile && (
+        <EditProfileModal
+          currentProfile={profile}
+          onClose={() => setShowEditProfile(false)}
+          onSuccess={(p) => {
+            setProfile(p);
+            setShowEditProfile(false);
+            success('Profile completely updated!');
+          }}
+        />
+      )}
     </div>
   );
 }
