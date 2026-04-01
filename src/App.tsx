@@ -93,7 +93,8 @@ export default function App() {
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
-        if (profile?.role === 'ANALYST') {
+        const allowedRoles = ['ANALYST', 'CREATOR'];
+        if (allowedRoles.includes(profile?.role)) {
           setIsAuthenticated(true);
           setUserProfile(profile);
           setActivePage('Dashboard');
