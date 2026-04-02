@@ -132,10 +132,10 @@ export default function StoryDetailPanel({ story, isOpen, onClose }: StoryDetail
         </div>
 
         {/* Content Preview Mini Header */}
-        <div className="px-6 py-5 flex items-center gap-5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 shadow-sm z-10">
-          <div className="w-14 h-20 rounded-lg overflow-hidden bg-black flex-shrink-0 relative shadow-md ring-1 ring-black/5">
+        <div className="px-6 py-5 flex items-center gap-6 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 shadow-sm z-10">
+          <div className="w-24 h-40 rounded-xl overflow-hidden bg-black flex-shrink-0 relative shadow-md ring-1 ring-black/10">
             {story.type === 'video' ? (
-              <video src={story.media_url} className="w-full h-full object-cover" />
+              <video src={story.media_url} className="w-full h-full object-cover" autoPlay muted loop playsInline />
             ) : story.type === 'image' ? (
               <img src={story.media_url} className="w-full h-full object-cover" />
             ) : (
