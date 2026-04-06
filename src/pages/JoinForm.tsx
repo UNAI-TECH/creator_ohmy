@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, User, Mail, FileText, Globe, ArrowLeft, Loader2, CheckCircle, Building2, UserCircle2, Users } from 'lucide-react';
+import { Send, User, Mail, FileText, Globe, ArrowLeft, ArrowRight, Loader2, CheckCircle, Building2, UserCircle2, Users } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 interface JoinFormProps {
@@ -141,216 +141,248 @@ export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 py-12">
-      <div className="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl shadow-red-100 p-8 md:p-12 relative overflow-hidden">
-        {/* Decor */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full -mr-16 -mt-16 z-0"></div>
+    <div className="min-h-screen soft-gradient flex flex-col items-center justify-center p-6 sm:p-12 font-sans selection:bg-red-100 selection:text-red-600 overflow-x-hidden">
+      <div className="relative w-full max-w-5xl flex flex-col lg:block items-center justify-center min-h-[750px] lg:h-[650px] mt-8 lg:mt-0">
         
-        <button 
-          onClick={onBack}
-          className="group flex items-center gap-2 text-gray-400 hover:text-red-600 transition-colors mb-8 relative z-10"
+        {/* SECTION: FORM CARD */}
+        <div 
+          className={`w-full max-w-[460px] lg:absolute lg:top-1/2 lg:-translate-y-1/2 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] z-20 
+          ${requestType === 'personal' ? 'lg:left-0' : 'lg:left-[calc(100%-460px)]'}`}
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-bold uppercase tracking-wider">Back</span>
-        </button>
+          <button 
+            onClick={onBack}
+            className="flex lg:hidden items-center gap-2 text-gray-400 hover:text-red-600 transition-all font-bold text-xs uppercase tracking-widest group mb-8 justify-center w-full"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </button>
 
-        <div className="relative z-10">
-          <h2 className="text-4xl font-extrabold mb-2">Creator Application</h2>
-          <p className="text-gray-500 mb-8">Join Hindusthan as a verified creator.</p>
-
-          <div className="flex gap-4 mb-8">
-            <button
-              type="button"
-              onClick={() => setRequestType('personal')}
-              className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${requestType === 'personal' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 hover:border-red-200 text-gray-500'}`}
-            >
-              <UserCircle2 className={requestType === 'personal' ? 'text-red-500' : 'text-gray-400'} size={28} />
-              <span className="font-bold">Personal</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRequestType('organization')}
-              className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${requestType === 'organization' ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 hover:border-red-200 text-gray-500'}`}
-            >
-              <Building2 className={requestType === 'organization' ? 'text-red-500' : 'text-gray-400'} size={28} />
-              <span className="font-bold">Organization</span>
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {requestType === 'personal' && (
-              <>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input 
-                      type="text" required
-                      value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all"
-                      placeholder="Rahul Sharma"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Username</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">@</span>
-                    <input 
-                      type="text" required maxLength={24}
-                      value={formData.username} onChange={(e) => handleUsernameChange(e.target.value)}
-                      className={`w-full pl-10 pr-12 py-4 bg-gray-50 border ${usernameStatus === 'taken' ? 'border-red-500 bg-red-50/50' : usernameStatus === 'available' ? 'border-green-500 bg-green-50/50' : 'border-transparent'} focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all`}
-                      placeholder="rahul_sharma"
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      {usernameStatus === 'checking' && <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />}
-                      {usernameStatus === 'available' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                    </div>
-                  </div>
-                  {usernameStatus === 'taken' && (
-                    <div className="mt-3">
-                      <p className="text-red-500 text-sm font-semibold mb-2">Username is already taken. Try these:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {suggestions.map(s => (
-                          <button
-                            key={s} type="button" onClick={() => handleUsernameChange(s)}
-                            className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-100 font-medium"
-                          >
-                            @{s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input 
-                      type="email" required
-                      value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all"
-                      placeholder="rahul@example.com"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Short Bio</label>
-                  <div className="relative">
-                    <FileText className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                    <textarea 
-                      required value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all min-h-[120px]"
-                      placeholder="Experienced journalist and political analyst..."
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {requestType === 'organization' && (
-              <>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Channel / Entity Name</label>
-                  <div className="relative">
-                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input 
-                      type="text" required
-                      value={formData.channelName} onChange={(e) => setFormData({...formData, channelName: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all"
-                      placeholder="Hindusthan Media Network"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Channel Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input 
-                      type="email" required
-                      value={formData.channelEmail} onChange={(e) => setFormData({...formData, channelEmail: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all"
-                      placeholder="contact@hindusthanmedia.com"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Content Categories</label>
-                  <div className="flex flex-wrap gap-3">
-                    {CATEGORIES.map(cat => (
-                      <button
-                        key={cat} type="button"
-                        onClick={() => handleCategoryToggle(cat)}
-                        className={`px-4 py-2 rounded-full border text-sm font-semibold transition-all ${
-                          formData.category.includes(cat)
-                            ? 'bg-red-600 text-white border-red-600'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Team / Employee Size</label>
-                  <div className="relative">
-                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input 
-                      type="number" required min="1"
-                      value={formData.employeeSize} onChange={(e) => setFormData({...formData, employeeSize: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all"
-                      placeholder="e.g., 10"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Channel Bio / Description</label>
-                  <div className="relative">
-                    <FileText className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                    <textarea 
-                      required value={formData.channelBio} onChange={(e) => setFormData({...formData, channelBio: e.target.value})}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all min-h-[120px]"
-                      placeholder="A leading media house focusing on..."
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase tracking-wide mb-2">Social Link (Optional)</label>
-              <div className="relative">
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input 
-                  type="url"
-                  value={formData.socialLink}
-                  onChange={(e) => setFormData({...formData, socialLink: e.target.value})}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent focus:bg-white focus:border-red-500 rounded-2xl outline-none transition-all"
-                  placeholder="https://youtube.com/c/hindusthan"
-                />
-              </div>
+          <div className="bg-white rounded-[32px] p-8 sm:p-10 card-shadow border border-gray-50 relative overflow-hidden">
+            <div className="mb-8 text-center lg:text-left">
+              <h2 className="text-3xl font-black text-gray-900 mb-1">
+                 {requestType === 'personal' ? 'Solo Creator' : 'Organization'}
+              </h2>
+              <p className="text-gray-400 font-medium text-sm tracking-wide">Application Form</p>
             </div>
 
-            {error && <p className="text-red-500 text-sm font-semibold">{error}</p>}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {requestType === 'personal' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <div className="relative group">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <input 
+                        type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
+                        placeholder="Rahul Sharma"
+                      />
+                    </div>
+                  </div>
 
-            <button 
-              type="submit"
-              disabled={loading || (requestType === 'personal' && usernameStatus === 'taken')}
-              className="w-full py-5 bg-red-600 text-white rounded-2xl text-lg font-bold hover:bg-red-700 transition-all shadow-xl shadow-red-200 flex items-center justify-center gap-3 disabled:opacity-70 active:scale-95 mt-4"
-            >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Submit Application <Send className="w-5 h-5" /></>}
-            </button>
-          </form>
+                  <div className="col-span-1 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Username</label>
+                    <div className="relative group">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 font-bold group-focus-within:text-red-500 transition-colors">@</span>
+                      <input 
+                        type="text" required maxLength={24} value={formData.username} onChange={(e) => handleUsernameChange(e.target.value)}
+                        className={`w-full pl-8 pr-10 py-3 bg-gray-50 border ${usernameStatus === 'taken' ? 'border-red-500 bg-red-50/50' : usernameStatus === 'available' ? 'border-green-500 bg-green-50/50' : 'border-gray-100'} focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300`}
+                        placeholder="rahul"
+                      />
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                        {usernameStatus === 'checking' && <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />}
+                        {usernameStatus === 'available' && <CheckCircle className="w-4 h-4 text-green-500" />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-span-1 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <input 
+                        type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
+                        placeholder="you@email.com"
+                      />
+                    </div>
+                  </div>
+
+                  {usernameStatus === 'taken' && (
+                    <div className="col-span-2">
+                       <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mb-1.5">Username is taken. Try these:</p>
+                       <div className="flex flex-wrap gap-2">
+                         {suggestions.map(s => (
+                           <button
+                             key={s} type="button" onClick={() => handleUsernameChange(s)}
+                             className="text-[10px] bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 font-black tracking-wider"
+                           >
+                             @{s}
+                           </button>
+                         ))}
+                       </div>
+                    </div>
+                  )}
+
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Short Bio</label>
+                    <div className="relative group">
+                      <FileText className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <textarea 
+                        required value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300 min-h-[80px]"
+                        placeholder="Tell us about your work..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {requestType === 'organization' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Entity Name</label>
+                    <div className="relative group">
+                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <input 
+                        type="text" required value={formData.channelName} onChange={(e) => setFormData({...formData, channelName: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
+                        placeholder="Media Network Ltd."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-span-1 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Org Email</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <input 
+                        type="email" required value={formData.channelEmail} onChange={(e) => setFormData({...formData, channelEmail: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
+                        placeholder="contact@org.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-span-1 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Team Size</label>
+                    <div className="relative group">
+                      <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <input 
+                        type="number" required min="1" value={formData.employeeSize} onChange={(e) => setFormData({...formData, employeeSize: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
+                        placeholder="e.g., 10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Categories</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map(cat => (
+                        <button
+                          key={cat} type="button" onClick={() => handleCategoryToggle(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
+                            formData.category.includes(cat) ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-red-300'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Entity Description</label>
+                    <div className="relative group">
+                      <FileText className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                      <textarea 
+                        required value={formData.channelBio} onChange={(e) => setFormData({...formData, channelBio: e.target.value})}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300 min-h-[80px]"
+                        placeholder="Describe your organization..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Social Link (Optional)</label>
+                <div className="relative group">
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-red-500 transition-colors" />
+                  <input 
+                    type="url" value={formData.socialLink} onChange={(e) => setFormData({...formData, socialLink: e.target.value})}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
+                    placeholder="https://youtube.com/c/hindusthan"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                  {error}
+                </div>
+              )}
+
+              <button 
+                type="submit" disabled={loading || (requestType === 'personal' && usernameStatus === 'taken')}
+                className="w-full py-3.5 bg-red-600 text-white rounded-xl text-sm font-black tracking-widest uppercase hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 flex items-center justify-center gap-2 mt-4 group disabled:opacity-70"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Submit Application <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" /></>}
+              </button>
+            </form>
+          </div>
         </div>
+
+        {/* SECTION: TEXT CONTENT (OPPOSITE SIDE) */}
+        <div 
+          className={`w-full max-w-[440px] mt-12 lg:mt-0 lg:absolute lg:top-1/2 lg:-translate-y-1/2 text-center lg:text-left transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] z-10 
+          ${requestType === 'personal' ? 'lg:left-[calc(100%-440px)] lg:pl-12' : 'lg:left-0 lg:pr-12'}`}
+        >
+          <button 
+            onClick={onBack}
+            className="hidden lg:flex items-center gap-2 text-gray-400 hover:text-red-600 transition-all font-bold text-xs uppercase tracking-widest group mb-10"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </button>
+
+          {requestType === 'personal' ? (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+              <h1 className="text-5xl sm:text-6xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                Are you an<br />
+                <span className="text-red-600">Organization?</span>
+              </h1>
+              <p className="text-gray-500 text-base sm:text-lg mt-6 max-w-sm mx-auto lg:mx-0 font-medium leading-relaxed">
+                Represent a media house or entity? Switch to our Organization track to unlock premium team management capabilities.
+              </p>
+              <button 
+                type="button" onClick={(e) => { e.preventDefault(); setRequestType('organization'); }}
+                className="mt-8 py-3.5 px-8 bg-white border-2 border-red-100 text-red-600 rounded-2xl font-bold hover:bg-red-50 hover:border-red-200 transition-all card-shadow flex items-center justify-center lg:justify-start gap-3 mx-auto lg:mx-0 uppercase tracking-wider text-xs active:scale-95"
+              >
+                Apply as Organization <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h1 className="text-5xl sm:text-6xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                Are you a<br />
+                <span className="text-red-600">Solo Creator?</span>
+              </h1>
+              <p className="text-gray-500 text-base sm:text-lg mt-6 max-w-sm mx-auto lg:mx-0 font-medium leading-relaxed">
+                Independent journalist or blogger? Switch to our personal track to establish your individual brand and audience.
+              </p>
+              <button 
+                type="button" onClick={(e) => { e.preventDefault(); setRequestType('personal'); }}
+                className="mt-8 py-3.5 px-8 bg-white border-2 border-red-100 text-red-600 rounded-2xl font-bold hover:bg-red-50 hover:border-red-200 transition-all card-shadow flex items-center justify-center lg:justify-start gap-3 mx-auto lg:mx-0 uppercase tracking-wider text-xs active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4" /> Apply as Solo Creator
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
