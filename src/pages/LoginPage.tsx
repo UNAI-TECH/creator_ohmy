@@ -76,9 +76,7 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
           </button>
 
           <div className="flex items-center justify-center lg:justify-start gap-3 mb-8">
-            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
-              <PlaySquare className="w-6 h-6 text-white" fill="currentColor" />
-            </div>
+            <img src="/logo%20omh.png" alt="OMH Logo" className="w-12 h-12 object-contain" />
             <span className="text-xl font-bold tracking-tight text-gray-900 font-sans">Creator Studio</span>
           </div>
 

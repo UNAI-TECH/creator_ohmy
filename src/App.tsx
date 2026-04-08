@@ -351,10 +351,8 @@ export default function App() {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
               <Menu className="w-6 h-6 text-gray-600" />
             </button>
-            <div className="flex items-center gap-1 cursor-pointer">
-              <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                <PlaySquare className="w-5 h-5 text-white" fill="currentColor" />
-              </div>
+            <div className="flex items-center gap-2 cursor-pointer">
+              <img src="/logo%20omh.png" alt="OMH Logo" className="w-8 h-8 object-contain" />
               <span className="text-xl font-semibold tracking-tight hidden sm:block">Studio</span>
             </div>
           </div>

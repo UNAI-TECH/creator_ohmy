@@ -11,20 +11,18 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
     <div className="min-h-screen bg-white text-[#0f0f0f] font-sans">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-red-200">
-            <PlaySquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="currentColor" />
-          </div>
-          <span className="text-base sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">Hindusthan</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <img src="/logo%20omh.png" alt="OMH Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
+          <span className="text-base sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">Hindustan</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-4">
-          <button 
+          <button
             onClick={onLoginClick}
             className="px-2 sm:px-6 py-2 text-[10px] sm:text-sm font-black text-gray-400 hover:text-red-600 transition-colors uppercase tracking-widest"
           >
             Sign In
           </button>
-          <button 
+          <button
             onClick={onJoinClick}
             className="px-4 sm:px-6 py-2 sm:py-2.5 bg-red-600 text-white rounded-xl sm:rounded-full text-[10px] sm:text-sm font-black hover:bg-red-700 transition-all shadow-lg shadow-red-100 active:scale-95 uppercase tracking-widest"
           >
@@ -60,7 +58,7 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
           </p>
 
           <div className="flex flex-col sm:flex-row gap-5">
-            <button 
+            <button
               onClick={onJoinClick}
               className="group relative px-10 py-5 bg-red-600 text-white rounded-2xl text-lg font-bold transition-all shadow-xl shadow-red-600/30 overflow-hidden flex items-center justify-center gap-3 hover:-translate-y-1 hover:shadow-2xl hover:shadow-red-600/40"
             >
@@ -68,7 +66,7 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
               <span>Start Your Journey</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-            <button 
+            <button
               onClick={() => document.getElementById('how-to-join')?.scrollIntoView({ behavior: 'smooth' })}
               className="px-10 py-5 bg-white text-gray-800 border-2 border-gray-200 rounded-2xl text-lg font-bold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center justify-center shadow-sm hover:shadow-md"
             >
@@ -123,9 +121,9 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
               </p>
             </div>
           </div>
-          
+
           <div className="mt-16 text-center">
-            <button 
+            <button
               onClick={onJoinClick}
               className="inline-flex items-center gap-2 text-red-600 font-bold hover:text-red-700 hover:underline underline-offset-4"
             >
@@ -138,19 +136,19 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
       {/* Stats/Features */}
       <section className="bg-gray-50 py-24">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12">
-          <FeatureCard 
-            icon={Users} 
-            title="Massive Reach" 
+          <FeatureCard
+            icon={Users}
+            title="Massive Reach"
             desc="Connect with an engaged audience across every state and language of India."
           />
-          <FeatureCard 
-            icon={Star} 
-            title="Premium Tools" 
+          <FeatureCard
+            icon={Star}
+            title="Premium Tools"
             desc="High-end dashboard to manage your content, analytics, and community."
           />
-          <FeatureCard 
-            icon={CheckCircle2} 
-            title="Verified Status" 
+          <FeatureCard
+            icon={CheckCircle2}
+            title="Verified Status"
             desc="Get the blue checkmark and build trust with your followers instantly."
           />
         </div>
@@ -159,9 +157,7 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
       {/* Modern Minimal Footer */}
       <footer className="bg-white pt-20 pb-10 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center">
-          <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-8 shadow-sm border border-red-100">
-            <PlaySquare className="w-6 h-6 text-red-600" fill="currentColor" />
-          </div>
+          <img src="/logo%20omh.png" alt="OMH Logo" className="w-16 h-16 object-contain mb-8" />
           <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-12 text-sm font-semibold text-gray-400">
             <a href="#" className="hover:text-red-600 transition-colors">About</a>
             <a href="#" className="hover:text-red-600 transition-colors">Creators</a>
