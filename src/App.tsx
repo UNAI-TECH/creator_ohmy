@@ -77,6 +77,10 @@ export default function App() {
   const [createVideoDuration, setCreateVideoDuration] = useState('');
   const [createVideoFile, setCreateVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [createAuthorName, setCreateAuthorName] = useState('');
+  const [createAuthorPosition, setCreateAuthorPosition] = useState('');
+  const [createHashtags, setCreateHashtags] = useState<string[]>([]);
+  const [hashtagInput, setHashtagInput] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
@@ -168,6 +172,29 @@ export default function App() {
     setCreateVideoDuration('');
     setCreateVideoFile(null);
     setVideoPreview(null);
+    setCreateAuthorName('');
+    setCreateAuthorPosition('');
+    setCreateHashtags([]);
+    setHashtagInput('');
+  };
+
+  const handleAddHashtag = (tag: string) => {
+    const cleanTag = tag.trim().replace(/^#/, '');
+    if (!cleanTag) return;
+    if (createHashtags.length >= 5) {
+      error('Limit: Only 5 hashtags allowed.');
+      return;
+    }
+    if (createHashtags.includes(cleanTag)) {
+      setHashtagInput('');
+      return;
+    }
+    setCreateHashtags([...createHashtags, cleanTag]);
+    setHashtagInput('');
+  };
+
+  const handleRemoveHashtag = (index: number) => {
+    setCreateHashtags(createHashtags.filter((_, i) => i !== index));
   };
 
   const handleAction = async (action: 'PUBLISHED' | 'ARCHIVED' | 'SCHEDULED') => {
@@ -209,6 +236,9 @@ export default function App() {
         video_duration: createType === 'video' ? createVideoDuration.trim() || undefined : undefined,
         status: action,
         scheduledFor: action === 'SCHEDULED' ? new Date(scheduleDate).toISOString() : undefined,
+        author_name: createAuthorName.trim() || undefined,
+        author_position: createAuthorPosition.trim() || undefined,
+        hashtags: createHashtags.length > 0 ? createHashtags : undefined,
       });
       setShowCreateForm(false);
       
@@ -564,7 +594,17 @@ export default function App() {
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType === 'blog' ? 'headline' : createType === 'news' ? 'article' : 'video'} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Author Name</label>
+                  <input type="text" value={createAuthorName} onChange={e => setCreateAuthorName(e.target.value)} placeholder="e.g., Rajesh Kumar" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Author Position</label>
+                  <input type="text" value={createAuthorPosition} onChange={e => setCreateAuthorPosition(e.target.value)} placeholder="e.g., Senior Political Analyst" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                </div>
               </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
@@ -587,12 +627,80 @@ export default function App() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
-                    <RichTextEditor
-                      value={createContent}
-                      onChange={setCreateContent}
-                      placeholder={`Write your ${createType} content here...`}
-                      minHeight="200px"
-                    />
+                    {createType === 'blog' ? (
+                      <div>
+                        <textarea
+                          value={createContent}
+                          onChange={e => {
+                            if (e.target.value.length <= 500) setCreateContent(e.target.value);
+                          }}
+                          maxLength={500}
+                          placeholder="Write your headline content here (max 500 characters)..."
+                          className="w-full px-6 py-5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 outline-none resize-none leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                          style={{ minHeight: '200px', maxHeight: '400px' }}
+                        />
+                        <div className={cn(
+                          "text-xs mt-2 text-right font-medium transition-colors",
+                          createContent.length >= 480 ? "text-red-500" : createContent.length >= 400 ? "text-amber-500" : "text-gray-400"
+                        )}>
+                          {createContent.length}/500 characters
+                        </div>
+                      </div>
+                    ) : (
+                      <RichTextEditor
+                        value={createContent}
+                        onChange={setCreateContent}
+                        placeholder={`Write your ${createType} content here...`}
+                        minHeight="200px"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hashtags (Max 5)</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {createHashtags.map((tag, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-100 group">
+                          #{tag}
+                          <button 
+                            type="button"
+                            onClick={() => handleRemoveHashtag(idx)}
+                            className="hover:text-red-900 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {createHashtags.length === 0 && (
+                        <span className="text-xs text-gray-400 italic">No hashtags added yet</span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={hashtagInput} 
+                        onChange={e => setHashtagInput(e.target.value)} 
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+                            e.preventDefault();
+                            handleAddHashtag(hashtagInput);
+                          }
+                        }}
+                        placeholder={createHashtags.length >= 5 ? "Hashtag limit reached" : "Type #hashtag and hit Enter..."} 
+                        disabled={createHashtags.length >= 5}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => handleAddHashtag(hashtagInput)}
+                        disabled={createHashtags.length >= 5 || !hashtagInput.trim()}
+                        className="absolute right-2 top-1.5 px-3 py-1.5 bg-gray-900 text-white text-[10px] font-bold rounded-lg hover:bg-black transition-colors disabled:opacity-30"
+                      >
+                        ADD
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+                      {createHashtags.length}/5 hashtags saved
+                    </p>
                   </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

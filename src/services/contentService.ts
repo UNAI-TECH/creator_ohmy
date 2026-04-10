@@ -13,6 +13,9 @@ export interface PostData {
   status?: 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED';
   scheduledFor?: string;
   is_active?: boolean;
+  author_name?: string;
+  author_position?: string;
+  hashtags?: string[];
 }
 
 export interface CreatorPost {
@@ -94,6 +97,9 @@ export const contentService = {
     if (postData.status) insertPayload.status = postData.status;
     if (postData.scheduledFor) insertPayload.scheduledFor = postData.scheduledFor;
     if (postData.is_active !== undefined) insertPayload.is_active = postData.is_active;
+    if (postData.author_name) insertPayload.author_name = postData.author_name;
+    if (postData.author_position) insertPayload.author_position = postData.author_position;
+    if (postData.hashtags) insertPayload.hashtags = postData.hashtags;
 
     const { data, error } = await supabase
       .from('Post')
@@ -332,6 +338,9 @@ export const contentService = {
     if (updates.status) payload.status = updates.status;
     if (updates.scheduledFor) payload.scheduledFor = updates.scheduledFor;
     if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+    if (updates.author_name !== undefined) payload.author_name = updates.author_name;
+    if (updates.author_position !== undefined) payload.author_position = updates.author_position;
+    if (updates.hashtags !== undefined) payload.hashtags = updates.hashtags;
 
     const { data, error } = await supabase
       .from('Post')

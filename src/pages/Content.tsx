@@ -10,7 +10,7 @@ import { contentService, CreatorPost } from '../services/contentService';
 import { useModal } from '../context/ModalContext';
 import { useToast } from '../context/ToastContext';
 
-const tabs = ['All', 'Blogs', 'News', 'Videos'];
+const tabs = ['All', 'Headlines', 'Articles', 'Videos'];
 
 const CATEGORIES = [
   'Politics', 'Economy', 'Digital India', 'Policy', 'Viksit Bharat',
@@ -22,6 +22,13 @@ const TYPE_COLORS: Record<string, string> = {
   news: '#0EA5E9',
   video: '#EF4444',
   update: '#6366F1',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  blog: 'Headline',
+  news: 'Article',
+  video: 'Video',
+  update: 'Update',
 };
 
 const TYPE_ICONS: Record<string, any> = {
@@ -376,8 +383,8 @@ export default function Content() {
 
   // Filter posts
   const filtered = posts.filter(p => {
-    if (activeTab === 'Blogs' && p.type !== 'blog') return false;
-    if (activeTab === 'News' && p.type !== 'news') return false;
+    if (activeTab === 'Headlines' && p.type !== 'blog') return false;
+    if (activeTab === 'Articles' && p.type !== 'news') return false;
     if (activeTab === 'Videos' && p.type !== 'video') return false;
     if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
@@ -401,7 +408,7 @@ export default function Content() {
             {tab}
             {tab !== 'All' && (
               <span className="ml-1 text-xs text-gray-400">
-                ({posts.filter(p => p.type === tab.toLowerCase().slice(0, -1) || (tab === 'Blogs' && p.type === 'blog') || (tab === 'News' && p.type === 'news') || (tab === 'Videos' && p.type === 'video')).length})
+                ({posts.filter(p => (tab === 'Headlines' && p.type === 'blog') || (tab === 'Articles' && p.type === 'news') || (tab === 'Videos' && p.type === 'video')).length})
               </span>
             )}
             {activeTab === tab && (
@@ -498,7 +505,7 @@ export default function Content() {
                               style={{ backgroundColor: (TYPE_COLORS[post.type] || '#6366F1') + '15', color: TYPE_COLORS[post.type] || '#6366F1' }}
                             >
                               <TypeIcon className="w-3.5 h-3.5" />
-                              {post.type}
+                              {TYPE_LABELS[post.type] || post.type}
                             </span>
                           </td>
                           <td className="py-4 px-6 align-top pt-6">
@@ -589,7 +596,7 @@ export default function Content() {
                                className="text-[10px] font-black uppercase tracking-widest"
                                style={{ color: TYPE_COLORS[post.type] || '#6366F1' }}
                              >
-                               {post.type}
+                               {TYPE_LABELS[post.type] || post.type}
                              </span>
                              <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
