@@ -163,8 +163,8 @@ export default function LandingPage({ onJoinClick, onLoginClick, onTermsClick, o
           <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-12 text-sm font-semibold text-gray-400">
             <a href="#" className="hover:text-red-600 transition-colors">About</a>
             <a href="#" className="hover:text-red-600 transition-colors">Creators</a>
-            <a href="/terms-of-service" onClick={(e) => { e.preventDefault(); onTermsClick(); }} className="hover:text-red-600 transition-colors">Terms</a>
-            <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); onPrivacyClick(); }} className="hover:text-red-600 transition-colors">Privacy</a>
+            <a href="/terms-of-service" className="hover:text-red-600 transition-colors">Terms</a>
+            <a href="/privacy-policy" className="hover:text-red-600 transition-colors">Privacy</a>
             <a href="#" className="hover:text-red-600 transition-colors">Contact</a>
           </div>
           <p className="text-gray-400 text-xs font-medium tracking-wide">
