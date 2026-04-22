@@ -28,6 +28,8 @@ import LandingPage from './pages/LandingPage';
 import JoinForm from './pages/JoinForm';
 import RequestPending from './pages/RequestPending';
 import LoginPage from './pages/LoginPage';
+import TermsAndConditions from './pages/TermsAndConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const CATEGORIES = [
   'Politics', 'Economy', 'Digital India', 'Policy', 'Viksit Bharat',
@@ -294,8 +296,14 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
+    if (activePage === 'Terms') {
+      return <TermsAndConditions onBack={() => setActivePage('Landing')} />;
+    }
+    if (activePage === 'Privacy') {
+      return <PrivacyPolicy onBack={() => setActivePage('Landing')} />;
+    }
     if (activePage === 'Landing') {
-      return <LandingPage onJoinClick={() => setActivePage('JoinForm')} onLoginClick={() => setActivePage('Login')} />;
+      return <LandingPage onJoinClick={() => setActivePage('JoinForm')} onLoginClick={() => setActivePage('Login')} onTermsClick={() => setActivePage('Terms')} onPrivacyClick={() => setActivePage('Privacy')} />;
     }
     if (activePage === 'Login') {
       return <LoginPage onBack={() => setActivePage('Landing')} onLoginSuccess={handleLoginSuccess} />;
@@ -317,7 +325,7 @@ export default function App() {
         }} applicantEmail={applicantEmail} />
       );
     }
-    return <LandingPage onJoinClick={() => setActivePage('JoinForm')} onLoginClick={() => setActivePage('Login')} />;
+    return <LandingPage onJoinClick={() => setActivePage('JoinForm')} onLoginClick={() => setActivePage('Login')} onTermsClick={() => setActivePage('Terms')} onPrivacyClick={() => setActivePage('Privacy')} />;
   }
 
   const navigateTo = (page: string) => {

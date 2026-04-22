@@ -4,9 +4,11 @@ import { PlaySquare, Users, Star, ArrowRight, CheckCircle2 } from 'lucide-react'
 interface LandingPageProps {
   onJoinClick: () => void;
   onLoginClick: () => void;
+  onTermsClick: () => void;
+  onPrivacyClick: () => void;
 }
 
-export default function LandingPage({ onJoinClick, onLoginClick }: LandingPageProps) {
+export default function LandingPage({ onJoinClick, onLoginClick, onTermsClick, onPrivacyClick }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-white text-[#0f0f0f] font-sans">
       {/* Navigation */}
@@ -161,8 +163,8 @@ export default function LandingPage({ onJoinClick, onLoginClick }: LandingPagePr
           <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-12 text-sm font-semibold text-gray-400">
             <a href="#" className="hover:text-red-600 transition-colors">About</a>
             <a href="#" className="hover:text-red-600 transition-colors">Creators</a>
-            <a href="#" className="hover:text-red-600 transition-colors">Terms</a>
-            <a href="#" className="hover:text-red-600 transition-colors">Privacy</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onTermsClick(); }} className="hover:text-red-600 transition-colors">Terms</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onPrivacyClick(); }} className="hover:text-red-600 transition-colors">Privacy</a>
             <a href="#" className="hover:text-red-600 transition-colors">Contact</a>
           </div>
           <p className="text-gray-400 text-xs font-medium tracking-wide">
