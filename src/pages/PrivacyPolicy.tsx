@@ -23,7 +23,7 @@ export default function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
 
         <div className="prose prose-red max-w-none space-y-6 text-gray-600 leading-relaxed">
           <p>
-            At <strong>OH MY HINDUSTAN</strong>, we value your trust and respect your privacy. This Privacy Policy details how we collect, use, and protect your data when you use the Creator Dashboard.
+            At <strong>POSTSAPP</strong>, we value your trust and respect your privacy. This Privacy Policy details how we collect, use, and protect your data when you use the Creator Dashboard.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">1. Data We Collect</h2>
@@ -38,7 +38,7 @@ export default function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           <p>Your data is strictly used to:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Manage and verify your identity as an author/creator.</li>
-            <li>Distribute your content to users within the OH MY HINDUSTAN app ecosystem.</li>
+            <li>Distribute your content to users within the POSTSAPP app ecosystem.</li>
             <li>Calculate your earnings and process financial distributions securely.</li>
             <li>Improve dashboard functionalities, perform analytics, and ensure platform security.</li>
           </ul>

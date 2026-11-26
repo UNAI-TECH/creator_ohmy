@@ -15,7 +15,7 @@ export default function LandingPage({ onJoinClick, onLoginClick, onTermsClick, o
       <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2 sm:gap-3">
           <img src="/logo%20omh.png" alt="OMH Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
-          <span className="text-base sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">Hindustan</span>
+          <span className="text-base sm:text-2xl font-black tracking-tighter text-gray-900 uppercase">PostsApp</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-4">
           <button
@@ -168,7 +168,7 @@ export default function LandingPage({ onJoinClick, onLoginClick, onTermsClick, o
             <a href="#" className="hover:text-red-600 transition-colors">Contact</a>
           </div>
           <p className="text-gray-400 text-xs font-medium tracking-wide">
-            © 2026 OH MY HINDUSTAN. ALL RIGHTS RESERVED.
+            © 2026 POSTSAPP. ALL RIGHTS RESERVED.
           </p>
         </div>
       </footer>

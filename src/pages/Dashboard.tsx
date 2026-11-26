@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { contentService, CreatorPost, CreatorStats } from '../services/contentService';
+import { invalidateMemCache } from '../lib/cache';
 
 const formatNumber = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -50,6 +51,8 @@ export default function Dashboard() {
   const [recentPosts, setRecentPosts] = useState<CreatorPost[]>([]);
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastFetchTime = useRef<number>(0);
+  const MIN_REFETCH_INTERVAL = 5000; // 5 seconds
 
   const fetchData = async () => {
     setLoading(true);
@@ -62,6 +65,7 @@ export default function Dashboard() {
       setStats(statsData);
       setRecentPosts(posts.slice(0, 5));
       setRecentComments(comments.slice(0, 3));
+      lastFetchTime.current = Date.now();
     } catch (e) {
       console.warn('Dashboard fetch error:', e);
     } finally {
@@ -72,9 +76,17 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
 
-    // Real-time subscription
+    // Real-time subscription with refetch guard
     const sub = contentService.subscribeToMyPostUpdates(() => {
-      fetchData();
+      // Bust caches on Realtime event
+      invalidateMemCache('creator:stats:');
+      invalidateMemCache('creator:posts:');
+      invalidateMemCache('creator:comments:');
+
+      // Only re-fetch if enough time has passed since last fetch
+      if (Date.now() - lastFetchTime.current >= MIN_REFETCH_INTERVAL) {
+        fetchData();
+      }
     });
 
     return () => { sub.unsubscribe(); };

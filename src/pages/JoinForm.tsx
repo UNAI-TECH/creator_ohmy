@@ -313,7 +313,7 @@ export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
                   <input 
                     type="url" value={formData.socialLink} onChange={(e) => setFormData({...formData, socialLink: e.target.value})}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 focus:border-red-500/30 focus:bg-white rounded-xl outline-none transition-all font-medium text-sm text-gray-900 placeholder:text-gray-300"
-                    placeholder="https://youtube.com/c/hindusthan"
+                    placeholder="https://youtube.com/c/postsapp"
                   />
                 </div>
               </div>

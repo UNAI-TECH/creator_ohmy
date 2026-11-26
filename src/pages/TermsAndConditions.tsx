@@ -23,7 +23,7 @@ export default function TermsAndConditions({ onBack }: TermsAndConditionsProps) 
 
         <div className="prose prose-red max-w-none space-y-6 text-gray-600 leading-relaxed">
           <p>
-            Welcome to the <strong>OH MY HINDUSTAN Creator Dashboard</strong>. By accessing and using this platform, you agree to comply with and be bound by the following terms and conditions.
+            Welcome to the <strong>POSTSAPP Creator Dashboard</strong>. By accessing and using this platform, you agree to comply with and be bound by the following terms and conditions.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">1. Acceptance of Terms</h2>
@@ -33,7 +33,7 @@ export default function TermsAndConditions({ onBack }: TermsAndConditionsProps) 
 
           <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">2. Content Guidelines</h2>
           <p>
-            As a creator on OH MY HINDUSTAN, you are expected to maintain the highest standards of journalism and content creation. You agree:
+            As a creator on POSTSAPP, you are expected to maintain the highest standards of journalism and content creation. You agree:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Not to publish false, misleading, or unverified information.</li>
@@ -54,7 +54,7 @@ export default function TermsAndConditions({ onBack }: TermsAndConditionsProps) 
 
           <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">5. Termination</h2>
           <p>
-            OH MY HINDUSTAN reserves the right to suspend or terminate any creator account without prior notice if we believe the account violates these Terms and Conditions or poses a risk to the platform and our audience.
+            POSTSAPP reserves the right to suspend or terminate any creator account without prior notice if we believe the account violates these Terms and Conditions or poses a risk to the platform and our audience.
           </p>
 
           <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">6. Changes to Terms</h2>

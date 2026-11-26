@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { getMemCache, setMemCache, invalidateMemCache } from '../lib/cache';
 
 export interface PostData {
   title: string;
@@ -113,6 +114,11 @@ export const contentService = {
     // This is now handled automatically by a Supabase Database Webhook + Edge Function
     // for significantly better performance and scalability.
 
+    // Invalidate caches after mutation
+    invalidateMemCache(`creator:posts:${user.id}`);
+    invalidateMemCache(`creator:stats:${user.id}`);
+    invalidateMemCache(`creator:comments:${user.id}`);
+
     return data;
   },
 
@@ -120,6 +126,11 @@ export const contentService = {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) throw new Error('Not authenticated');
+
+    // Check in-memory cache (30s TTL)
+    const cacheKey = `creator:posts:${user.id}`;
+    const cached = getMemCache<CreatorPost[]>(cacheKey);
+    if (cached) return cached;
 
     const { data, error } = await supabase
       .from('Post')
@@ -129,7 +140,7 @@ export const contentService = {
 
     if (error) throw error;
 
-    return (data || []).map((post: any) => {
+    const result = (data || []).map((post: any) => {
       const likes = post.Vote?.filter((v: any) => v.type === 1).length || 0;
       const dislikes = post.Vote?.filter((v: any) => v.type === -1).length || 0;
       const views = post.PostView?.length || 0;
@@ -157,12 +168,20 @@ export const contentService = {
         visibility: 'Public',
       };
     });
+
+    setMemCache(cacheKey, result, 30000);
+    return result;
   },
 
   async getMyStats(): Promise<CreatorStats> {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) throw new Error('Not authenticated');
+
+    // Check in-memory cache (60s TTL)
+    const cacheKey = `creator:stats:${user.id}`;
+    const cached = getMemCache<CreatorStats>(cacheKey);
+    if (cached) return cached;
 
     const { data: posts, error } = await supabase
       .from('Post')
@@ -203,7 +222,7 @@ export const contentService = {
     let storyViews = 0;
     (stories || []).forEach((s: any) => storyViews += (s.viewers_count || 0));
 
-    return {
+    const result: CreatorStats = {
       totalPosts: allPosts.length,
       totalViews: totalPostViews + storyViews, // Real post views + actual Story views
       totalComments,
@@ -215,12 +234,20 @@ export const contentService = {
       newsCount: allPosts.filter((p: any) => p.type === 'NEWS').length,
       videoCount: allPosts.filter((p: any) => p.type === 'VIDEO').length,
     };
+
+    setMemCache(cacheKey, result, 60000);
+    return result;
   },
 
   async getMyComments(): Promise<CreatorComment[]> {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) throw new Error('Not authenticated');
+
+    // Check in-memory cache (30s TTL)
+    const commentsCacheKey = `creator:comments:${user.id}`;
+    const cachedComments = getMemCache<CreatorComment[]>(commentsCacheKey);
+    if (cachedComments) return cachedComments;
 
     const { data: myPosts } = await supabase
       .from('Post')
@@ -241,7 +268,7 @@ export const contentService = {
 
     if (error) throw error;
 
-    return (comments || []).map((c: any) => ({
+    const commentsResult = (comments || []).map((c: any) => ({
       id: c.id,
       content: c.content,
       created_at: c.createdAt,
@@ -259,6 +286,9 @@ export const contentService = {
       hearted: c.creatorLiked || false,
       parentId: c.parentId || null,
     }));
+
+    setMemCache(commentsCacheKey, commentsResult, 30000);
+    return commentsResult;
   },
 
   async toggleCommentHeart(commentId: string, currentHeartState: boolean) {
@@ -327,6 +357,9 @@ export const contentService = {
   },
 
   async updatePost(postId: string, updates: Partial<PostData>) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
     const payload: any = {};
     if (updates.title) payload.title = updates.title;
     if (updates.content) payload.content = updates.content;
@@ -350,15 +383,32 @@ export const contentService = {
       .single();
 
     if (error) throw error;
+
+    // Invalidate caches after mutation
+    if (userId) {
+      invalidateMemCache(`creator:posts:${userId}`);
+      invalidateMemCache(`creator:stats:${userId}`);
+    }
+
     return data;
   },
 
   async deletePost(postId: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
     await supabase.from('Comment').delete().eq('postId', postId);
     await supabase.from('Vote').delete().eq('postId', postId);
     await supabase.from('Save').delete().eq('postId', postId);
     const { error } = await supabase.from('Post').delete().eq('id', postId);
     if (error) throw error;
+
+    // Invalidate caches after mutation
+    if (userId) {
+      invalidateMemCache(`creator:posts:${userId}`);
+      invalidateMemCache(`creator:stats:${userId}`);
+      invalidateMemCache(`creator:comments:${userId}`);
+    }
   },
 
   async uploadMedia(file: File, folder: string = 'thumbnails') {
