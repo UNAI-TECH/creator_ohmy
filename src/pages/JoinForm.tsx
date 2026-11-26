@@ -141,8 +141,24 @@ export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
   };
 
   return (
-    <div className="min-h-screen soft-gradient flex flex-col items-center justify-center p-6 sm:p-12 font-sans selection:bg-red-100 selection:text-red-600 overflow-x-hidden">
-      <div className="relative w-full max-w-5xl flex flex-col lg:block items-center justify-center min-h-[750px] lg:h-[650px] mt-8 lg:mt-0">
+    <div className="min-h-screen bg-[#F7F6F2] flex flex-col items-center justify-center p-6 sm:p-12 font-sans selection:bg-red-100 selection:text-[#D4191F] overflow-x-hidden">
+      <div className="w-full max-w-5xl flex items-center justify-between mb-4">
+        <button 
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#18181B] hover:border-[#D4191F] hover:text-[#D4191F] transition-colors text-xs font-bold"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+        <div className="flex items-center gap-2">
+          <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-8 object-contain" />
+          <span className="px-2 py-0.5 rounded bg-[#D4191F] text-white text-[9px] font-extrabold tracking-widest uppercase">
+            CREATORS
+          </span>
+        </div>
+        <div className="w-16 hidden sm:block" />
+      </div>
+      <div className="relative w-full max-w-5xl flex flex-col lg:block items-center justify-center min-h-[750px] lg:h-[650px] mt-4 lg:mt-0">
         
         {/* SECTION: FORM CARD */}
         <div 

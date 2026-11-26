@@ -40,15 +40,15 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, danger = fals
   <button 
     onClick={onClick}
     className={cn(
-      "w-full flex items-center gap-4 px-6 py-3 text-sm font-medium transition-colors border-l-4",
+      "w-full flex items-center gap-3.5 px-4 py-2.5 mx-2 rounded-lg text-sm font-semibold transition-colors max-w-[calc(100%-1rem)]",
       active 
-        ? "bg-red-50 border-red-600 text-red-600" 
+        ? "bg-[#D4191F] text-white shadow-sm" 
         : danger
-          ? "border-transparent text-red-600 hover:bg-red-50"
-          : "border-transparent text-[#0f0f0f] hover:bg-[#f2f2f2]"
+          ? "text-[#F87171] hover:bg-[#262626]"
+          : "text-[#A3A3A3] hover:text-white hover:bg-[#1F1F1F]"
     )}
   >
-    <Icon className={cn("w-5 h-5", active ? "text-red-600" : danger ? "text-red-600" : "text-[#606060]")} />
+    <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-white" : danger ? "text-[#F87171]" : "text-[#A3A3A3]")} />
     <span>{label}</span>
   </button>
 );
@@ -61,7 +61,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const { success, error, toast } = useToast();
   const [applicantEmail, setApplicantEmail] = useState<string>(
-    localStorage.getItem('omh_applicant_email') || ''
+    localStorage.getItem('postsapp_applicant_email') || localStorage.getItem('omh_applicant_email') || ''
   );
 
   // Create Modal state
@@ -312,7 +312,7 @@ export default function App() {
       return (
         <JoinForm onBack={() => setActivePage('Landing')} onSubmitSuccess={(email: string) => {
           setApplicantEmail(email);
-          localStorage.setItem('omh_applicant_email', email);
+          localStorage.setItem('postsapp_applicant_email', email);
           setActivePage('RequestPending');
         }} />
       );
@@ -320,6 +320,7 @@ export default function App() {
     if (activePage === 'RequestPending') {
       return (
         <RequestPending onBack={() => setActivePage('Landing')} onGoToLogin={() => {
+          localStorage.removeItem('postsapp_applicant_email');
           localStorage.removeItem('omh_applicant_email');
           setActivePage('Login');
         }} applicantEmail={applicantEmail} />
@@ -337,29 +338,44 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f9f9f9] text-[#0f0f0f] font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#F5F5F7] text-[#111827] font-sans overflow-hidden">
       {/* Mobile Sidebar Overlay/Backdrop */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm animate-in fade-in duration-300"
+          className="fixed inset-0 bg-black/55 z-40 lg:hidden backdrop-blur-sm animate-in fade-in duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Dark Editorial Studio Sidebar */}
       <aside className={cn(
-        "bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-50 shadow-xl lg:shadow-none",
+        "bg-[#141414] border-r border-[#262626] flex flex-col transition-all duration-300 z-50 shadow-xl lg:shadow-none",
         "fixed inset-y-0 left-0 lg:relative",
         sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64 lg:w-0 lg:translate-x-0 lg:opacity-0 lg:pointer-events-none overflow-hidden"
       )}>
+        <div className="h-16 px-4 flex items-center justify-between border-b border-[#262626] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo-postsapp-dark.png" alt="PostsApp Studio" className="h-7 object-contain" />
+            <span className="px-2 py-0.5 rounded bg-[#D4191F] text-white text-[9px] font-extrabold tracking-widest uppercase">
+              STUDIO
+            </span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg text-[#A3A3A3] hover:text-white hover:bg-[#262626]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
         {/* Desktop Collapse Arrow */}
         {sidebarOpen && (
           <button 
             onClick={() => setSidebarOpen(false)}
-            className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-gray-200 rounded-full items-center justify-center shadow-sm hover:bg-gray-50 z-[60] group transition-all"
+            className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-[#E5E7EB] rounded-full items-center justify-center shadow-sm hover:bg-gray-50 z-[60] group transition-all"
             title="Collapse Sidebar"
           >
-            <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-red-600 rotate-180" />
+            <ChevronRight className="w-3 h-3 text-gray-500 group-hover:text-[#D4191F] rotate-180" />
           </button>
         )}
 
@@ -375,7 +391,7 @@ export default function App() {
             <SidebarItem icon={User} label="Profile" active={activePage === 'Profile'} onClick={() => navigateTo('Profile')} />
           </div>
         </div>
-        <div className="border-t border-gray-200 py-4 flex flex-col gap-1">
+        <div className="border-t border-[#262626] py-3 flex flex-col gap-1">
           <SidebarItem icon={SettingsIcon} label="Settings" onClick={() => navigateTo('Settings')} active={activePage === 'Settings'} />
           <SidebarItem icon={Send} label="Send feedback" onClick={() => navigateTo('Feedback')} active={activePage === 'Feedback'} />
           <SidebarItem icon={LogOut} label="Logout" onClick={handleLogout} danger />
@@ -384,40 +400,40 @@ export default function App() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden w-full h-full relative">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sticky top-0 z-20 shrink-0">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <Menu className="w-6 h-6 text-gray-600" />
+        <header className="h-16 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shrink-0">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <Menu className="w-5 h-5 text-[#374151]" />
             </button>
-            <div className="flex items-center gap-2 cursor-pointer">
-              <img src="/logo%20omh.png" alt="OMH Logo" className="w-8 h-8 object-contain" />
-              <span className="text-xl font-semibold tracking-tight hidden sm:block">Studio</span>
+            <div className={cn("flex items-center gap-2 cursor-pointer", sidebarOpen && "lg:hidden")}>
+              <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-7 object-contain" />
+              <span className="text-sm font-extrabold tracking-tight text-[#111827] hidden sm:block">Studio</span>
             </div>
           </div>
 
           <div className="flex-1 max-w-2xl px-4 sm:px-8 hidden md:block">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="w-5 h-5 text-gray-400" />
+                <Search className="w-4 h-4 text-[#9CA3AF]" />
               </div>
-              <input type="text" placeholder="Search across your channel" className="w-full pl-11 pr-4 py-2 bg-gray-100 border border-transparent focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-full text-sm transition-all outline-none" />
+              <input type="text" placeholder="Search across your channel..." className="w-full pl-11 pr-4 py-2 bg-[#F5F5F7] border border-[#E5E7EB] focus:bg-white focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] rounded-lg text-sm transition-all outline-none" />
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={() => setShowCreateModal(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-full text-sm font-medium transition-colors shadow-sm">
+            <button onClick={() => setShowCreateModal(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#D4191F] hover:bg-[#9E1111] text-white rounded-lg text-xs font-extrabold tracking-wider transition-colors shadow-sm">
               <Upload className="w-4 h-4" />
               <span>CREATE</span>
             </button>
             <button onClick={() => setShowCreateModal(true)} className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <Upload className="w-6 h-6 text-red-600" />
+              <Upload className="w-6 h-6 text-[#D4191F]" />
             </button>
             <button 
               onClick={() => setActivePage('Notifications')}
               className="p-2 hover:bg-gray-100 rounded-full relative transition-colors"
             >
-              <Bell className="w-6 h-6 text-gray-600" />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 border-2 border-white rounded-full"></span>
+              <Bell className="w-5 h-5 text-[#4B5563]" />
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#D4191F] border-2 border-white rounded-full"></span>
             </button>
             <button 
               onClick={() => setActivePage('Profile')}
@@ -426,7 +442,7 @@ export default function App() {
               {userProfile?.avatarUrl ? (
                 <img src={userProfile.avatarUrl} className="w-8 h-8 rounded-full object-cover" alt="Profile" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-bold">
+                <div className="w-8 h-8 rounded-full bg-[#D4191F] flex items-center justify-center text-white text-sm font-bold">
                   {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
                 </div>
               )}
@@ -479,8 +495,8 @@ export default function App() {
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-5 sm:p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-2xl flex items-center justify-center shrink-0">
-                      <Wand2 className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10 bg-[#FEF2F2] rounded-2xl flex items-center justify-center shrink-0">
+                      <Wand2 className="w-5 h-5 text-[#D4191F]" />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-gray-900">What's on your mind?</div>
@@ -494,7 +510,7 @@ export default function App() {
                         onClick={() => setFeedbackCategory(cat)}
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all",
-                          feedbackCategory === cat ? "bg-gray-900 text-white shadow-lg" : "text-gray-400 hover:text-gray-600"
+                          feedbackCategory === cat ? "bg-[#D4191F] text-white shadow-sm" : "text-gray-400 hover:text-gray-600"
                         )}
                       >
                         {cat}
@@ -507,7 +523,7 @@ export default function App() {
                   <textarea 
                     value={feedbackText}
                     onChange={e => setFeedbackText(e.target.value)}
-                    className="w-full p-6 bg-gray-50 border border-gray-100 rounded-2xl text-sm resize-none min-h-[250px] focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all placeholder:text-gray-300" 
+                    className="w-full p-6 bg-gray-50 border border-gray-100 rounded-2xl text-sm resize-none min-h-[250px] focus:bg-white focus:border-[#D4191F] focus:ring-2 focus:ring-red-500/10 outline-none transition-all placeholder:text-gray-300" 
                     placeholder={
                       feedbackCategory === 'bug' ? "What went wrong? Describe the bug in detail..." :
                       feedbackCategory === 'suggestion' ? "I have a great idea for..." :
@@ -569,7 +585,7 @@ export default function App() {
                     <opt.icon className="w-6 h-6" style={{ color: opt.color }} />
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{opt.label}</div>
+                    <div className="font-semibold text-gray-900 text-sm group-hover:text-[#D4191F] transition-colors">{opt.label}</div>
                     <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
@@ -602,16 +618,16 @@ export default function App() {
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType === 'blog' ? 'headline' : createType === 'news' ? 'article' : 'video'} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType === 'blog' ? 'headline' : createType === 'news' ? 'article' : 'video'} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] outline-none transition-all" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Author Name</label>
-                  <input type="text" value={createAuthorName} onChange={e => setCreateAuthorName(e.target.value)} placeholder="e.g., Rajesh Kumar" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                  <input type="text" value={createAuthorName} onChange={e => setCreateAuthorName(e.target.value)} placeholder="e.g., Rajesh Kumar" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] outline-none transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Author Position</label>
-                  <input type="text" value={createAuthorPosition} onChange={e => setCreateAuthorPosition(e.target.value)} placeholder="e.g., Senior Political Analyst" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                  <input type="text" value={createAuthorPosition} onChange={e => setCreateAuthorPosition(e.target.value)} placeholder="e.g., Senior Political Analyst" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] outline-none transition-all" />
                 </div>
               </div>
                   <div>
@@ -644,7 +660,7 @@ export default function App() {
                           }}
                           maxLength={500}
                           placeholder="Write your headline content here (max 500 characters)..."
-                          className="w-full px-6 py-5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 outline-none resize-none leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                          className="w-full px-6 py-5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 outline-none resize-none leading-relaxed focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] transition-all"
                           style={{ minHeight: '200px', maxHeight: '400px' }}
                         />
                         <div className={cn(

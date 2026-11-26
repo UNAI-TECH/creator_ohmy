@@ -104,10 +104,11 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
   // ── APPROVED STATE ──
   if (status === 'approved') {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-[#F7F6F2] flex flex-col items-center justify-center p-6 text-center">
+        <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-9 object-contain mb-6" />
         
         <h1 className="text-2xl sm:text-4xl font-black mb-4 text-green-700 uppercase tracking-tight">Application Approved! 🎉</h1>
-        <p className="text-base sm:text-xl text-gray-500 max-w-md mb-6 leading-relaxed font-bold uppercase tracking-widest opacity-60">
+        <p className="text-base sm:text-lg text-[#6B7280] max-w-md mb-6 leading-relaxed font-medium">
           Congratulations! Your creator application has been approved. 
           You can now log in with the credentials provided by the admin.
         </p>
@@ -146,11 +147,11 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
           <div className="my-4 border-l-2 border-green-200 ml-3 h-6"></div>
 
           <div className="flex items-start gap-4 text-left">
-            <div className="shrink-0 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center mt-1">
+            <div className="shrink-0 w-6 h-6 bg-[#D4191F] text-white rounded-full flex items-center justify-center mt-1">
               <LogIn className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="font-bold text-red-600">Login to Your Studio</h4>
+              <h4 className="font-bold text-[#D4191F]">Login to Your Studio</h4>
               <p className="text-sm text-gray-500">Use the credentials shared by admin.</p>
             </div>
           </div>
@@ -158,7 +159,7 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
 
         <button 
           onClick={onGoToLogin}
-          className="px-10 py-4 bg-red-600 text-white rounded-2xl text-lg font-bold hover:bg-red-700 transition-all flex items-center gap-3 active:scale-95 shadow-xl shadow-red-200"
+          className="px-10 py-4 bg-[#D4191F] text-white rounded-xl text-base font-bold hover:bg-[#9E1111] transition-all flex items-center gap-3 active:scale-95 shadow-lg shadow-red-200"
         >
           <LogIn className="w-5 h-5" />
           Login to Creator Studio
@@ -177,10 +178,11 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
   // ── REJECTED STATE ──
   if (status === 'rejected') {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-[#F7F6F2] flex flex-col items-center justify-center p-6 text-center">
+        <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-9 object-contain mb-6" />
         
-        <h1 className="text-2xl sm:text-4xl font-black mb-4 text-red-700 uppercase tracking-tight">Application Rejected</h1>
-        <p className="text-base sm:text-xl text-gray-500 max-w-md mb-6 leading-relaxed font-bold uppercase tracking-widest opacity-60">
+        <h1 className="text-2xl sm:text-4xl font-black mb-4 text-[#D4191F] uppercase tracking-tight">Application Rejected</h1>
+        <p className="text-base sm:text-lg text-[#6B7280] max-w-md mb-6 leading-relaxed font-medium">
           Unfortunately, your creator application was not approved at this time.
         </p>
 
@@ -229,9 +231,10 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
   // ── NOT FOUND STATE ──
   if (status === 'not_found') {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-8">
-          <AlertTriangle className="w-12 h-12" />
+      <div className="min-h-screen bg-[#F7F6F2] flex flex-col items-center justify-center p-6 text-center">
+        <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-9 object-contain mb-6" />
+        <div className="w-20 h-20 bg-red-50 text-[#D4191F] rounded-full flex items-center justify-center mb-6 border border-red-200">
+          <AlertTriangle className="w-10 h-10" />
         </div>
         <div className="relative z-10">
           <h2 className="text-2xl sm:text-4xl font-black mb-2 uppercase tracking-tight">Creator Application</h2>
@@ -252,22 +255,23 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
 
   // ── PENDING STATE (default) ──
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-[#F7F6F2] flex flex-col items-center justify-center p-6 text-center">
+      <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-9 object-contain mb-6" />
       
-      <h1 className="text-2xl sm:text-4xl font-black mb-4 uppercase tracking-tight">Request Pending</h1>
-      <p className="text-base sm:text-xl text-gray-500 max-w-md mb-4 leading-relaxed font-bold uppercase tracking-widest opacity-60">
+      <h1 className="text-2xl sm:text-4xl font-black text-[#111827] mb-4 uppercase tracking-tight">Request Pending</h1>
+      <p className="text-base sm:text-lg text-[#6B7280] max-w-md mb-4 leading-relaxed font-medium">
         We've received your application! Our admin team is reviewing your profile. 
         This page updates automatically.
       </p>
 
       <button 
         onClick={checkStatus}
-        className="flex items-center gap-2 text-sm text-red-600 font-bold hover:text-red-700 mb-10 transition-colors"
+        className="flex items-center gap-2 text-sm text-[#D4191F] font-bold hover:text-[#9E1111] mb-8 transition-colors"
       >
         <RefreshCw className="w-4 h-4" /> Refresh Status
       </button>
 
-      <div className="bg-gray-50 p-8 rounded-[2rem] max-w-md w-full mb-12 border border-gray-100">
+      <div className="bg-white p-8 rounded-2xl max-w-md w-full mb-10 border border-[#E5E7EB] shadow-sm">
         <div className="flex items-start gap-4 text-left">
           <div className="shrink-0 w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center mt-1">
             <CheckCircle className="w-4 h-4" />
@@ -281,7 +285,7 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
         <div className="my-6 border-l-2 border-dashed border-gray-200 ml-3 h-8"></div>
 
         <div className="flex items-start gap-4 text-left">
-          <div className="shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mt-1 animate-pulse">
+          <div className="shrink-0 w-6 h-6 bg-red-100 text-[#D4191F] rounded-full flex items-center justify-center mt-1 animate-pulse">
             <Clock className="w-4 h-4" />
           </div>
           <div>

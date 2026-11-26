@@ -36,7 +36,7 @@ export default function ConfirmationModal({
           <div className="flex items-start gap-4">
             <div className={cn(
               "p-3 rounded-2xl shrink-0",
-              type === 'danger' ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
+              type === 'danger' ? "bg-red-50 text-[#D4191F]" : "bg-[#FEF2F2] text-[#D4191F]"
             )}>
               {type === 'danger' ? <AlertTriangle className="w-6 h-6" /> : <Info className="w-6 h-6" />}
             </div>
@@ -61,8 +61,8 @@ export default function ConfirmationModal({
               className={cn(
                 "flex-1 py-3.5 px-4 rounded-2xl text-sm font-bold text-white shadow-lg active:scale-95 transition-all",
                 type === 'danger' 
-                  ? "bg-red-600 hover:bg-red-700 shadow-red-200" 
-                  : "bg-blue-600 hover:bg-blue-700 shadow-blue-200"
+                  ? "bg-[#D4191F] hover:bg-[#9E1111] shadow-red-200" 
+                  : "bg-[#141414] hover:bg-black shadow-gray-200"
               )}
             >
               {confirmText}
