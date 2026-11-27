@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  select:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
+}
+
 @layer utilities {
   .soft-gradient {
     background-color: #F7F6F2;
@@ -13,4 +37,49 @@
 :root {
   font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
   background-color: #F5F5F7;
+}
+
+.studio-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.24);
+  border-radius: 9999px;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.studio-main-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 20, 20, 0.18) transparent;
+}
+
+.studio-main-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.studio-main-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-main-scroll::-webkit-scrollbar-thumb {
+  background: rgba(20, 20, 20, 0.16);
+  border-radius: 9999px;
+}
+
+.studio-main-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 20, 20, 0.32);
 }

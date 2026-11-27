@@ -40,21 +40,23 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, danger = fals
   <button 
     onClick={onClick}
     className={cn(
-      "w-full flex items-center gap-3.5 px-4 py-2.5 mx-2 rounded-lg text-sm font-semibold transition-colors max-w-[calc(100%-1rem)]",
+      "w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[13.5px] font-semibold transition-all",
       active 
-        ? "bg-[#D4191F] text-white shadow-sm" 
+        ? "bg-[#141414] text-white shadow-md" 
         : danger
-          ? "text-[#F87171] hover:bg-[#262626]"
-          : "text-[#A3A3A3] hover:text-white hover:bg-[#1F1F1F]"
+          ? "text-white/85 hover:bg-black/25 hover:text-white"
+          : "text-white/80 hover:text-white hover:bg-white/10"
     )}
   >
-    <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-white" : danger ? "text-[#F87171]" : "text-[#A3A3A3]")} />
-    <span>{label}</span>
+    <Icon className={cn("w-[17px] h-[17px] shrink-0", active ? "text-white" : "text-white/80")} />
+    <span className="truncate">{label}</span>
   </button>
 );
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
   const [activePage, setActivePage] = useState('Landing');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -100,7 +102,8 @@ export default function App() {
           .eq('id', session.user.id)
           .maybeSingle();
         const allowedRoles = ['ANALYST', 'CREATOR'];
-        if (allowedRoles.includes(profile?.role)) {
+        const normalizedRole = String(profile?.role || '').trim().toUpperCase();
+        if (allowedRoles.includes(normalizedRole)) {
           setIsAuthenticated(true);
           setUserProfile(profile);
           setActivePage('Dashboard');
@@ -337,9 +340,12 @@ export default function App() {
     }
   };
 
+  const creatorDisplayName =
+    userProfile?.channel_name || userProfile?.username || userProfile?.email?.split('@')[0] || 'Creator';
+
   return (
-    <div className="flex h-screen bg-[#F5F5F7] text-[#111827] font-sans overflow-hidden">
-      {/* Mobile Sidebar Overlay/Backdrop */}
+    <div className="flex h-screen bg-gradient-to-b from-[#D4191F] via-[#C1141A] to-[#9E1111] text-[#111827] font-sans overflow-hidden sm:p-2.5 lg:p-3">
+      {/* Mobile / Tablet Sidebar Overlay Backdrop */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/55 z-40 lg:hidden backdrop-blur-sm animate-in fade-in duration-300"
@@ -347,111 +353,135 @@ export default function App() {
         />
       )}
 
-      {/* Dark Editorial Studio Sidebar */}
+      {/* Crimson Editorial Studio Sidebar */}
       <aside className={cn(
-        "bg-[#141414] border-r border-[#262626] flex flex-col transition-all duration-300 z-50 shadow-xl lg:shadow-none",
-        "fixed inset-y-0 left-0 lg:relative",
-        sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-64 lg:w-0 lg:translate-x-0 lg:opacity-0 lg:pointer-events-none overflow-hidden"
+        "flex flex-col transition-all duration-300 z-50 shrink-0",
+        "fixed inset-y-0 left-0 bg-gradient-to-b from-[#D4191F] to-[#9E1111] lg:bg-none lg:relative",
+        sidebarOpen
+          ? "translate-x-0 w-64 sm:w-60 lg:w-60 lg:mr-3"
+          : "-translate-x-full w-64 lg:w-0 lg:mr-0 lg:translate-x-0 lg:opacity-0 lg:pointer-events-none overflow-hidden"
       )}>
-        <div className="h-16 px-4 flex items-center justify-between border-b border-[#262626] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo-postsapp-dark.png" alt="PostsApp Studio" className="h-7 object-contain" />
-            <span className="px-2 py-0.5 rounded bg-[#D4191F] text-white text-[9px] font-extrabold tracking-widest uppercase">
+        <div className="h-14 px-3.5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 bg-[#141414] px-3 py-1.5 rounded-xl border border-white/15 shadow-sm">
+            <img src="/logo-postsapp-dark.png" alt="PostsApp Studio" className="h-5 sm:h-6 object-contain" />
+            <span className="px-1.5 py-0.5 rounded bg-[#D4191F] text-white text-[9px] font-extrabold tracking-widest uppercase">
               STUDIO
             </span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-[#A3A3A3] hover:text-white hover:bg-[#262626]"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+            title="Close Sidebar"
+            aria-label="Close Sidebar"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 lg:hidden" />
+            <ChevronRight className="w-4 h-4 hidden lg:block rotate-180" />
           </button>
         </div>
 
-        {/* Desktop Collapse Arrow */}
-        {sidebarOpen && (
-          <button 
-            onClick={() => setSidebarOpen(false)}
-            className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white border border-[#E5E7EB] rounded-full items-center justify-center shadow-sm hover:bg-gray-50 z-[60] group transition-all"
-            title="Collapse Sidebar"
-          >
-            <ChevronRight className="w-3 h-3 text-gray-500 group-hover:text-[#D4191F] rotate-180" />
-          </button>
-        )}
+        {/* Single responsive scrollable rail holding nav + quick create without overlaps */}
+        <div className="flex-1 min-h-0 overflow-y-auto studio-sidebar-scroll px-3 py-2 flex flex-col justify-between gap-4">
+          <div className="flex flex-col">
+            <div className="flex flex-col gap-0.5">
+              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activePage === 'Dashboard'} onClick={() => navigateTo('Dashboard')} />
+              <SidebarItem icon={Video} label="Content" active={activePage === 'Content'} onClick={() => navigateTo('Content')} />
+              <SidebarItem icon={Aperture} label="Stories" active={activePage === 'Stories'} onClick={() => navigateTo('Stories')} />
+              <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => navigateTo('Comments')} />
+              <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => navigateTo('Subtitles')} />
+              <SidebarItem icon={IndianRupee} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
+              <SidebarItem icon={Bell} label="Notifications" active={activePage === 'Notifications'} onClick={() => navigateTo('Notifications')} />
+              <SidebarItem icon={User} label="Profile" active={activePage === 'Profile'} onClick={() => navigateTo('Profile')} />
+            </div>
 
-        <div className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
-          <div className="flex flex-col gap-1">
-            <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activePage === 'Dashboard'} onClick={() => navigateTo('Dashboard')} />
-            <SidebarItem icon={Video} label="Content" active={activePage === 'Content'} onClick={() => navigateTo('Content')} />
-            <SidebarItem icon={Aperture} label="Stories" active={activePage === 'Stories'} onClick={() => navigateTo('Stories')} />
-            <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => navigateTo('Comments')} />
-            <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => navigateTo('Subtitles')} />
-            <SidebarItem icon={IndianRupee} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
-            <SidebarItem icon={Bell} label="Notifications" active={activePage === 'Notifications'} onClick={() => navigateTo('Notifications')} />
-            <SidebarItem icon={User} label="Profile" active={activePage === 'Profile'} onClick={() => navigateTo('Profile')} />
+            <div className="mt-3 pt-2.5 border-t border-white/15 flex flex-col gap-0.5">
+              <SidebarItem icon={SettingsIcon} label="Settings" onClick={() => navigateTo('Settings')} active={activePage === 'Settings'} />
+              <SidebarItem icon={Send} label="Send feedback" onClick={() => navigateTo('Feedback')} active={activePage === 'Feedback'} />
+              <SidebarItem icon={LogOut} label="Logout" onClick={handleLogout} danger />
+            </div>
           </div>
-        </div>
-        <div className="border-t border-[#262626] py-3 flex flex-col gap-1">
-          <SidebarItem icon={SettingsIcon} label="Settings" onClick={() => navigateTo('Settings')} active={activePage === 'Settings'} />
-          <SidebarItem icon={Send} label="Send feedback" onClick={() => navigateTo('Feedback')} active={activePage === 'Feedback'} />
-          <SidebarItem icon={LogOut} label="Logout" onClick={handleLogout} danger />
+
+          {/* Bottom Studio Promo / Quick Create Card cleanly inside scroll flow */}
+          <div className="p-3.5 rounded-2xl bg-black/25 border border-white/15 text-white shrink-0">
+            <div className="text-xs font-extrabold tracking-wide mb-1">Go Live Studio</div>
+            <p className="text-[11px] text-white/75 leading-snug mb-2.5">
+              Publish articles, 24h stories &amp; videos directly to PostsApp.
+            </p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full py-2 px-3 rounded-xl bg-[#141414] hover:bg-black text-white text-xs font-bold transition-colors shadow-sm"
+            >
+              + Create Content
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden w-full h-full relative">
-        <header className="h-16 bg-white border-b border-[#E5E7EB] flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shrink-0">
+      {/* Main White Rounded Workspace — symmetric frame padding on all 4 sides when sidebar is open or closed */}
+      <div className="flex-1 flex flex-col overflow-hidden w-full h-full relative bg-white sm:rounded-[24px] lg:rounded-[28px] shadow-2xl">
+        <header className="h-16 sm:h-[72px] bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-7 sticky top-0 z-20 shrink-0 gap-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Menu className="w-5 h-5 text-[#374151]" />
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <Menu className="w-5 h-5 text-[#141414]" />
             </button>
             <div className={cn("flex items-center gap-2 cursor-pointer", sidebarOpen && "lg:hidden")}>
               <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-7 object-contain" />
-              <span className="text-sm font-extrabold tracking-tight text-[#111827] hidden sm:block">Studio</span>
+            </div>
+            <div className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F5F5F8] border border-gray-100 text-xs font-semibold text-[#4B5563]">
+              <span className="w-2 h-2 rounded-full bg-[#D4191F]" />
+              <span>Welcome, <strong className="text-[#141414]">{creatorDisplayName}</strong></span>
             </div>
           </div>
 
-          <div className="flex-1 max-w-2xl px-4 sm:px-8 hidden md:block">
+          <div className="flex-1 max-w-md px-2 hidden xl:block">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <Search className="w-4 h-4 text-[#9CA3AF]" />
               </div>
-              <input type="text" placeholder="Search across your channel..." className="w-full pl-11 pr-4 py-2 bg-[#F5F5F7] border border-[#E5E7EB] focus:bg-white focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] rounded-lg text-sm transition-all outline-none" />
+              <input type="text" placeholder="Search across your channel..." className="w-full pl-10 pr-4 py-2 bg-[#F7F7FA] border border-gray-100 focus:bg-white focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] rounded-full text-xs transition-all outline-none" />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={() => setShowCreateModal(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#D4191F] hover:bg-[#9E1111] text-white rounded-lg text-xs font-extrabold tracking-wider transition-colors shadow-sm">
-              <Upload className="w-4 h-4" />
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
+            <button onClick={() => setShowCreateModal(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#141414] hover:bg-black text-white rounded-full text-xs font-extrabold tracking-wider transition-colors shadow-sm">
+              <Upload className="w-3.5 h-3.5" />
               <span>CREATE</span>
             </button>
-            <button onClick={() => setShowCreateModal(true)} className="sm:hidden p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <Upload className="w-6 h-6 text-[#D4191F]" />
+            <button onClick={() => setShowCreateModal(true)} className="sm:hidden p-2 bg-[#141414] text-white rounded-full transition-colors">
+              <Upload className="w-4 h-4" />
             </button>
             <button 
               onClick={() => setActivePage('Notifications')}
               className="p-2 hover:bg-gray-100 rounded-full relative transition-colors"
             >
-              <Bell className="w-5 h-5 text-[#4B5563]" />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#D4191F] border-2 border-white rounded-full"></span>
+              <Bell className="w-5 h-5 text-[#141414]" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#D4191F] rounded-full"></span>
             </button>
             <button 
               onClick={() => setActivePage('Profile')}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors overflow-hidden"
+              className="flex items-center gap-2.5 pl-1 pr-2.5 py-1 hover:bg-gray-100 rounded-full transition-colors"
             >
               {userProfile?.avatarUrl ? (
-                <img src={userProfile.avatarUrl} className="w-8 h-8 rounded-full object-cover" alt="Profile" />
+                <img src={userProfile.avatarUrl} className="w-8 h-8 rounded-full object-cover border border-gray-200" alt="Profile" />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[#D4191F] flex items-center justify-center text-white text-sm font-bold">
-                  {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
+                <div className="w-8 h-8 rounded-full bg-[#D4191F] flex items-center justify-center text-white text-xs font-bold">
+                  {creatorDisplayName.charAt(0).toUpperCase()}
                 </div>
               )}
+              <span className="hidden md:block text-xs font-medium text-[#4B5563] max-w-[160px] truncate">
+                {userProfile?.email || creatorDisplayName}
+              </span>
             </button>
           </div>
         </header>
 
-        <main className={cn("flex-1 overflow-y-auto", activePage === 'Profile' ? "p-0" : "p-4 sm:p-6 lg:p-8")}>
-          {activePage === 'Dashboard' && <Dashboard />}
+        <main className={cn("flex-1 min-h-0 overflow-y-auto studio-main-scroll bg-white", activePage === 'Profile' ? "p-0" : "p-4 sm:p-6 lg:p-8")}>
+          {activePage === 'Dashboard' && (
+            <Dashboard
+              onCreateClick={() => setShowCreateModal(true)}
+              onNavigate={navigateTo}
+              userProfile={userProfile}
+            />
+          )}
           {activePage === 'Content' && <Content />}
           {activePage === 'Stories' && <StoriesPage />}
           {activePage === 'Comments' && <Comments />}

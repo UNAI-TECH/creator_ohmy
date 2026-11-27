@@ -20,8 +20,9 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
     setError('');
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
 
@@ -35,11 +36,21 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
+      let { data: profile, error: profileError } = await supabase
         .from('User')
         .select('role, username')
         .eq('id', authData.user.id)
         .maybeSingle();
+
+      if (!profile && normalizedEmail) {
+        const fallback = await supabase
+          .from('User')
+          .select('role, username')
+          .ilike('email', normalizedEmail)
+          .maybeSingle();
+        profile = fallback.data;
+        profileError = fallback.error;
+      }
 
       if (profileError || !profile) {
         setError('Failed to verify account.');
@@ -48,7 +59,8 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
       }
 
       const allowedRoles = ['ANALYST', 'CREATOR'];
-      if (!allowedRoles.includes(profile.role)) {
+      const normalizedRole = String(profile.role || '').trim().toUpperCase();
+      if (!allowedRoles.includes(normalizedRole)) {
         setError('Access denied. This portal is for creators only.');
         await supabase.auth.signOut();
         return;
