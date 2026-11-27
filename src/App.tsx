@@ -1,27 +1,36 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Menu, Search, Video, Bell, LayoutDashboard,
-  PlaySquare, BarChart2, MessageSquare, Subtitles as SubtitlesIcon,
-  IndianRupee, Settings as SettingsIcon, Send, Upload, Wand2, LogOut,
-  X, FileText, Newspaper, ChevronRight, ImagePlus, Trash2, User, Film,
-  Aperture, Clock
+  Menu,
+  Search,
+  Video,
+  Bell,
+  LayoutDashboard,
+  BarChart2,
+  MessageSquare,
+  Settings as SettingsIcon,
+  Send,
+  Upload,
+  LogOut,
+  X,
+  FileText,
+  Newspaper,
+  ChevronRight,
+  User,
+  Aperture,
+  FolderOpen,
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { supabase } from './lib/supabaseClient';
-import { contentService } from './services/contentService';
-import RichTextEditor from './components/RichTextEditor';
+import { useToast } from './context/ToastContext';
+
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
+import EditorPage from './pages/EditorPage';
+import MediaLibraryPage from './pages/MediaLibraryPage';
 import StoriesPage from './pages/Stories';
-import { useToast } from './context/ToastContext';
 import Comments from './pages/Comments';
-import Subtitles from './pages/Subtitles';
-import Earn from './pages/Earn';
+import Analytics from './pages/Analytics';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import LandingPage from './pages/LandingPage';
@@ -31,66 +40,69 @@ import LoginPage from './pages/LoginPage';
 import TermsAndConditions from './pages/TermsAndConditions';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
-const CATEGORIES = [
-  'Politics', 'Economy', 'Digital India', 'Policy', 'Viksit Bharat',
-  'Sports', 'Entertainment', 'Technology', 'Health', 'Education', 'General', 'Custom'
-];
-
-const SidebarItem = ({ icon: Icon, label, active = false, onClick, danger = false }: { icon: any, label: string, active?: boolean, onClick?: () => void, danger?: boolean }) => (
-  <button 
+const SidebarItem = ({
+  icon: Icon,
+  label,
+  active = false,
+  onClick,
+  danger = false,
+}: {
+  icon: any;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+  danger?: boolean;
+}) => (
+  <button
     onClick={onClick}
     className={cn(
-      "w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[13.5px] font-semibold transition-all",
-      active 
-        ? "bg-[#141414] text-white shadow-md" 
+      'w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[13.5px] font-semibold transition-all',
+      active
+        ? 'bg-[#141414] text-white shadow-md'
         : danger
-          ? "text-white/85 hover:bg-black/25 hover:text-white"
-          : "text-white/80 hover:text-white hover:bg-white/10"
+          ? 'text-white/85 hover:bg-black/25 hover:text-white'
+          : 'text-white/80 hover:text-white hover:bg-white/10'
     )}
   >
-    <Icon className={cn("w-[17px] h-[17px] shrink-0", active ? "text-white" : "text-white/80")} />
+    <Icon className={cn('w-[17px] h-[17px] shrink-0', active ? 'text-white' : 'text-white/80')} />
     <span className="truncate">{label}</span>
   </button>
 );
 
+const ROUTE_NAME_MAP: Record<string, string> = {
+  Dashboard: '/dashboard',
+  Content: '/content',
+  Stories: '/stories',
+  Comments: '/comments',
+  Media: '/media',
+  Analytics: '/analytics',
+  Notifications: '/notifications',
+  Profile: '/profile',
+  Settings: '/settings',
+  Feedback: '/feedback',
+};
+
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { success, error } = useToast();
+
   const [sidebarOpen, setSidebarOpen] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
   );
-  const [activePage, setActivePage] = useState('Landing');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const { success, error, toast } = useToast();
-  const [applicantEmail, setApplicantEmail] = useState<string>(
-    localStorage.getItem('postsapp_applicant_email') || localStorage.getItem('omh_applicant_email') || ''
-  );
-
-  // Create Modal state
+  const [globalSearch, setGlobalSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createType, setCreateType] = useState<'blog' | 'news' | 'video' | 'update'>('blog');
-  
-  // Create form state
-  const [createTitle, setCreateTitle] = useState('');
-  const [createContent, setCreateContent] = useState('');
-  const [createCategory, setCreateCategory] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
-  const [createThumbnailFile, setCreateThumbnailFile] = useState<File | null>(null);
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-  const [createVideoDuration, setCreateVideoDuration] = useState('');
-  const [createVideoFile, setCreateVideoFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [createAuthorName, setCreateAuthorName] = useState('');
-  const [createAuthorPosition, setCreateAuthorPosition] = useState('');
-  const [createHashtags, setCreateHashtags] = useState<string[]>([]);
-  const [hashtagInput, setHashtagInput] = useState('');
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState('');
+
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'suggestion' | 'other'>('suggestion');
+
+  const [applicantEmail, setApplicantEmail] = useState<string>(
+    localStorage.getItem('postsapp_applicant_email') || localStorage.getItem('omh_applicant_email') || ''
+  );
 
   useEffect(() => {
     const checkSession = async () => {
@@ -101,12 +113,12 @@ export default function App() {
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
-        const allowedRoles = ['ANALYST', 'CREATOR'];
+        const allowedRoles = ['ANALYST', 'CREATOR', 'ADMIN'];
         const normalizedRole = String(profile?.role || '').trim().toUpperCase();
-        if (allowedRoles.includes(normalizedRole)) {
+        const isActive = (profile?.account_status || 'active') === 'active';
+        if (allowedRoles.includes(normalizedRole) && isActive) {
           setIsAuthenticated(true);
           setUserProfile(profile);
-          setActivePage('Dashboard');
         } else {
           await supabase.auth.signOut();
         }
@@ -114,40 +126,22 @@ export default function App() {
       setLoading(false);
     };
     checkSession();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setUserProfile(null);
-        setActivePage('Landing');
+        navigate('/');
       }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // Scheduler checking every 30 seconds
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const interval = setInterval(async () => {
-      try {
-        const myPosts = await contentService.getMyPosts();
-        const now = new Date();
-        for (const post of myPosts) {
-          if (post.status === 'SCHEDULED' && post.scheduledFor) {
-            if (new Date(post.scheduledFor) <= now) {
-              await contentService.updatePost(post.id, { status: 'PUBLISHED' });
-            }
-          }
-        }
-      } catch (err) { }
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
     setUserProfile(null);
-    setActivePage('Landing');
+    navigate('/');
   };
 
   const handleLoginSuccess = async () => {
@@ -161,108 +155,20 @@ export default function App() {
       setUserProfile(profile);
     }
     setIsAuthenticated(true);
-    setActivePage('Dashboard');
+    navigate('/dashboard');
   };
 
-  const handleCreateSelect = (type: 'blog' | 'news' | 'video') => {
-    setCreateType(type);
+  const handleNavigate = (pageOrPath: string) => {
+    const path = pageOrPath.startsWith('/') ? pageOrPath : (ROUTE_NAME_MAP[pageOrPath] || '/dashboard');
+    navigate(path);
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleStartEditor = (type: 'blog' | 'news' | 'video') => {
     setShowCreateModal(false);
-    setShowCreateForm(true);
-    setCreateTitle('');
-    setCreateContent('');
-    setCreateCategory('');
-    setCustomCategory('');
-    setCreateThumbnailFile(null);
-    setThumbnailPreview(null);
-    setCreateVideoDuration('');
-    setCreateVideoFile(null);
-    setVideoPreview(null);
-    setCreateAuthorName('');
-    setCreateAuthorPosition('');
-    setCreateHashtags([]);
-    setHashtagInput('');
-  };
-
-  const handleAddHashtag = (tag: string) => {
-    const cleanTag = tag.trim().replace(/^#/, '');
-    if (!cleanTag) return;
-    if (createHashtags.length >= 5) {
-      error('Limit: Only 5 hashtags allowed.');
-      return;
-    }
-    if (createHashtags.includes(cleanTag)) {
-      setHashtagInput('');
-      return;
-    }
-    setCreateHashtags([...createHashtags, cleanTag]);
-    setHashtagInput('');
-  };
-
-  const handleRemoveHashtag = (index: number) => {
-    setCreateHashtags(createHashtags.filter((_, i) => i !== index));
-  };
-
-  const handleAction = async (action: 'PUBLISHED' | 'ARCHIVED' | 'SCHEDULED') => {
-    if (!createTitle.trim() || !createContent.trim() || (!createCategory && createType !== 'video')) {
-      error('Please fill in title, content, and category.');
-      return;
-    }
-    if (!createThumbnailFile && !thumbnailPreview) {
-      error('Please upload a thumbnail image.');
-      return;
-    }
-    if (createCategory === 'Custom' && !customCategory.trim()) {
-      error('Please enter a custom category name.');
-      return;
-    }
-    setIsPublishing(true);
-    try {
-      let thumbnailUrl: string | undefined;
-      if (createThumbnailFile) {
-        thumbnailUrl = await contentService.uploadMedia(createThumbnailFile, 'thumbnails');
-      }
-
-      let videoUrl: string | undefined;
-      if (createVideoFile && createType === 'video') {
-        videoUrl = await contentService.uploadVideo(createVideoFile);
-      }
-
-      // Story logic removed from here as it is now handled in the dedicated Stories page
-      // with a more advanced WhatsApp-style editor.
-
-      await contentService.createPost({
-        title: createTitle.trim(),
-        content: createContent,
-        type: createType,
-        category: createCategory === 'Custom' ? 'custom' : createCategory,
-        custom_category: createCategory === 'Custom' ? customCategory.trim() : undefined,
-        thumbnail: thumbnailUrl,
-        video_url: videoUrl,
-        video_duration: createType === 'video' ? createVideoDuration.trim() || undefined : undefined,
-        status: action,
-        scheduledFor: action === 'SCHEDULED' ? new Date(scheduleDate).toISOString() : undefined,
-        author_name: createAuthorName.trim() || undefined,
-        author_position: createAuthorPosition.trim() || undefined,
-        hashtags: createHashtags.length > 0 ? createHashtags : undefined,
-      });
-      setShowCreateForm(false);
-      
-      if (action === 'PUBLISHED') {
-        setActivePage('Content');
-        success('🎉 Published successfully! Your content is now live.');
-      } else if (action === 'ARCHIVED') {
-        setActivePage('Profile');
-        success('Saved to Archive.');
-      } else if (action === 'SCHEDULED') {
-        setActivePage('Profile');
-        success('Post scheduled successfully.');
-      }
-    } catch (e: any) {
-      error('Action failed: ' + (e.message || 'Unknown error'));
-    } finally {
-      setIsPublishing(false);
-      setIsScheduling(false);
-    }
+    navigate(`/editor/new?type=${type}`);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -273,18 +179,19 @@ export default function App() {
       const user = session?.user;
       if (!user) throw new Error('Not authenticated');
 
-      await supabase.from('Feedback').insert({
+      const { error: insErr } = await supabase.from('Feedback').insert({
         id: crypto.randomUUID(),
-        content: feedbackText,
+        content: feedbackText.trim(),
         category: feedbackCategory,
         userId: user.id,
         createdAt: new Date().toISOString(),
-        status: 'pending'
+        status: 'pending',
       });
+      if (insErr) throw insErr;
       success('Feedback submitted successfully!');
       setFeedbackText('');
     } catch (err: any) {
-      error('Failed to submit feedback: ' + err.message);
+      error('Failed to submit feedback: ' + (err?.message || 'Unknown error'));
     } finally {
       setIsSubmittingFeedback(false);
     }
@@ -293,76 +200,95 @@ export default function App() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-pulse text-gray-500 text-xl">Loading Studio...</div>
+        <div className="animate-pulse text-gray-500 text-xl font-semibold">Loading PostsApp Studio...</div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    if (activePage === 'Terms') {
-      return <TermsAndConditions onBack={() => setActivePage('Landing')} />;
-    }
-    if (activePage === 'Privacy') {
-      return <PrivacyPolicy onBack={() => setActivePage('Landing')} />;
-    }
-    if (activePage === 'Landing') {
-      return <LandingPage onJoinClick={() => setActivePage('JoinForm')} onLoginClick={() => setActivePage('Login')} onTermsClick={() => setActivePage('Terms')} onPrivacyClick={() => setActivePage('Privacy')} />;
-    }
-    if (activePage === 'Login') {
-      return <LoginPage onBack={() => setActivePage('Landing')} onLoginSuccess={handleLoginSuccess} />;
-    }
-    if (activePage === 'JoinForm') {
-      return (
-        <JoinForm onBack={() => setActivePage('Landing')} onSubmitSuccess={(email: string) => {
-          setApplicantEmail(email);
-          localStorage.setItem('postsapp_applicant_email', email);
-          setActivePage('RequestPending');
-        }} />
-      );
-    }
-    if (activePage === 'RequestPending') {
-      return (
-        <RequestPending onBack={() => setActivePage('Landing')} onGoToLogin={() => {
-          localStorage.removeItem('postsapp_applicant_email');
-          localStorage.removeItem('omh_applicant_email');
-          setActivePage('Login');
-        }} applicantEmail={applicantEmail} />
-      );
-    }
-    return <LandingPage onJoinClick={() => setActivePage('JoinForm')} onLoginClick={() => setActivePage('Login')} onTermsClick={() => setActivePage('Terms')} onPrivacyClick={() => setActivePage('Privacy')} />;
+    return (
+      <Routes>
+        <Route
+          path="/terms"
+          element={<TermsAndConditions onBack={() => navigate('/')} />}
+        />
+        <Route
+          path="/privacy"
+          element={<PrivacyPolicy onBack={() => navigate('/')} />}
+        />
+        <Route
+          path="/login"
+          element={<LoginPage onBack={() => navigate('/')} onLoginSuccess={handleLoginSuccess} />}
+        />
+        <Route
+          path="/join"
+          element={
+            <JoinForm
+              onBack={() => navigate('/')}
+              onSubmitSuccess={(email: string) => {
+                setApplicantEmail(email);
+                localStorage.setItem('postsapp_applicant_email', email);
+                navigate('/pending');
+              }}
+            />
+          }
+        />
+        <Route
+          path="/pending"
+          element={
+            <RequestPending
+              onBack={() => navigate('/')}
+              onGoToLogin={() => {
+                localStorage.removeItem('postsapp_applicant_email');
+                localStorage.removeItem('omh_applicant_email');
+                navigate('/login');
+              }}
+              applicantEmail={applicantEmail}
+            />
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <LandingPage
+              onJoinClick={() => navigate('/join')}
+              onLoginClick={() => navigate('/login')}
+              onTermsClick={() => navigate('/terms')}
+              onPrivacyClick={() => navigate('/privacy')}
+            />
+          }
+        />
+      </Routes>
+    );
   }
-
-  const navigateTo = (page: string) => {
-    setActivePage(page);
-    // Auto-close on mobile (below lg breakpoint)
-    if (window.innerWidth < 1024) {
-      setSidebarOpen(false);
-    }
-  };
 
   const creatorDisplayName =
     userProfile?.channel_name || userProfile?.username || userProfile?.email?.split('@')[0] || 'Creator';
+  const pathname = location.pathname;
 
   return (
     <div className="flex h-screen bg-gradient-to-b from-[#D4191F] via-[#C1141A] to-[#9E1111] text-[#111827] font-sans overflow-hidden sm:p-2.5 lg:p-3">
-      {/* Mobile / Tablet Sidebar Overlay Backdrop */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/55 z-40 lg:hidden backdrop-blur-sm animate-in fade-in duration-300"
+        <div
+          className="fixed inset-0 bg-black/55 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Crimson Editorial Studio Sidebar */}
-      <aside className={cn(
-        "flex flex-col transition-all duration-300 z-50 shrink-0",
-        "fixed inset-y-0 left-0 bg-gradient-to-b from-[#D4191F] to-[#9E1111] lg:bg-none lg:relative",
-        sidebarOpen
-          ? "translate-x-0 w-64 sm:w-60 lg:w-60 lg:mr-3"
-          : "-translate-x-full w-64 lg:w-0 lg:mr-0 lg:translate-x-0 lg:opacity-0 lg:pointer-events-none overflow-hidden"
-      )}>
+      <aside
+        className={cn(
+          'flex flex-col transition-all duration-300 z-50 shrink-0',
+          'fixed inset-y-0 left-0 bg-gradient-to-b from-[#D4191F] to-[#9E1111] lg:bg-none lg:relative',
+          sidebarOpen
+            ? 'translate-x-0 w-64 sm:w-60 lg:w-60 lg:mr-3'
+            : '-translate-x-full w-64 lg:w-0 lg:mr-0 lg:translate-x-0 lg:opacity-0 lg:pointer-events-none overflow-hidden'
+        )}
+      >
         <div className="h-14 px-3.5 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 bg-[#141414] px-3 py-1.5 rounded-xl border border-white/15 shadow-sm">
+          <div
+            onClick={() => handleNavigate('/dashboard')}
+            className="flex items-center gap-2 bg-[#141414] px-3 py-1.5 rounded-xl border border-white/15 shadow-sm cursor-pointer"
+          >
             <img src="/logo-postsapp-dark.png" alt="PostsApp Studio" className="h-5 sm:h-6 object-contain" />
             <span className="px-1.5 py-0.5 rounded bg-[#D4191F] text-white text-[9px] font-extrabold tracking-widest uppercase">
               STUDIO
@@ -372,39 +298,86 @@ export default function App() {
             onClick={() => setSidebarOpen(false)}
             className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors"
             title="Close Sidebar"
-            aria-label="Close Sidebar"
           >
             <X className="w-4 h-4 lg:hidden" />
             <ChevronRight className="w-4 h-4 hidden lg:block rotate-180" />
           </button>
         </div>
 
-        {/* Single responsive scrollable rail holding nav + quick create without overlaps */}
         <div className="flex-1 min-h-0 overflow-y-auto studio-sidebar-scroll px-3 py-2 flex flex-col justify-between gap-4">
           <div className="flex flex-col">
             <div className="flex flex-col gap-0.5">
-              <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activePage === 'Dashboard'} onClick={() => navigateTo('Dashboard')} />
-              <SidebarItem icon={Video} label="Content" active={activePage === 'Content'} onClick={() => navigateTo('Content')} />
-              <SidebarItem icon={Aperture} label="Stories" active={activePage === 'Stories'} onClick={() => navigateTo('Stories')} />
-              <SidebarItem icon={MessageSquare} label="Comments" active={activePage === 'Comments'} onClick={() => navigateTo('Comments')} />
-              <SidebarItem icon={SubtitlesIcon} label="Subtitles" active={activePage === 'Subtitles'} onClick={() => navigateTo('Subtitles')} />
-              <SidebarItem icon={IndianRupee} label="Earn" active={activePage === 'Earn'} onClick={() => navigateTo('Earn')} />
-              <SidebarItem icon={Bell} label="Notifications" active={activePage === 'Notifications'} onClick={() => navigateTo('Notifications')} />
-              <SidebarItem icon={User} label="Profile" active={activePage === 'Profile'} onClick={() => navigateTo('Profile')} />
+              <SidebarItem
+                icon={LayoutDashboard}
+                label="Dashboard"
+                active={pathname === '/dashboard' || pathname === '/'}
+                onClick={() => handleNavigate('/dashboard')}
+              />
+              <SidebarItem
+                icon={Video}
+                label="Content"
+                active={pathname.startsWith('/content') || pathname.startsWith('/editor')}
+                onClick={() => handleNavigate('/content')}
+              />
+              <SidebarItem
+                icon={Aperture}
+                label="Stories"
+                active={pathname.startsWith('/stories')}
+                onClick={() => handleNavigate('/stories')}
+              />
+              <SidebarItem
+                icon={FolderOpen}
+                label="Media Library"
+                active={pathname.startsWith('/media')}
+                onClick={() => handleNavigate('/media')}
+              />
+              <SidebarItem
+                icon={BarChart2}
+                label="Analytics"
+                active={pathname.startsWith('/analytics')}
+                onClick={() => handleNavigate('/analytics')}
+              />
+              <SidebarItem
+                icon={MessageSquare}
+                label="Comments"
+                active={pathname.startsWith('/comments')}
+                onClick={() => handleNavigate('/comments')}
+              />
+              <SidebarItem
+                icon={Bell}
+                label="Notifications"
+                active={pathname.startsWith('/notifications')}
+                onClick={() => handleNavigate('/notifications')}
+              />
+              <SidebarItem
+                icon={User}
+                label="Profile"
+                active={pathname.startsWith('/profile')}
+                onClick={() => handleNavigate('/profile')}
+              />
             </div>
 
             <div className="mt-3 pt-2.5 border-t border-white/15 flex flex-col gap-0.5">
-              <SidebarItem icon={SettingsIcon} label="Settings" onClick={() => navigateTo('Settings')} active={activePage === 'Settings'} />
-              <SidebarItem icon={Send} label="Send feedback" onClick={() => navigateTo('Feedback')} active={activePage === 'Feedback'} />
+              <SidebarItem
+                icon={SettingsIcon}
+                label="Settings"
+                active={pathname.startsWith('/settings')}
+                onClick={() => handleNavigate('/settings')}
+              />
+              <SidebarItem
+                icon={Send}
+                label="Send feedback"
+                active={pathname.startsWith('/feedback')}
+                onClick={() => handleNavigate('/feedback')}
+              />
               <SidebarItem icon={LogOut} label="Logout" onClick={handleLogout} danger />
             </div>
           </div>
 
-          {/* Bottom Studio Promo / Quick Create Card cleanly inside scroll flow */}
           <div className="p-3.5 rounded-2xl bg-black/25 border border-white/15 text-white shrink-0">
-            <div className="text-xs font-extrabold tracking-wide mb-1">Go Live Studio</div>
+            <div className="text-xs font-extrabold tracking-wide mb-1">Bilingual Newsroom</div>
             <p className="text-[11px] text-white/75 leading-snug mb-2.5">
-              Publish articles, 24h stories &amp; videos directly to PostsApp.
+              Write English &amp; Tamil editions, schedule releases &amp; track real performance.
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -416,48 +389,69 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main White Rounded Workspace — symmetric frame padding on all 4 sides when sidebar is open or closed */}
       <div className="flex-1 flex flex-col overflow-hidden w-full h-full relative bg-white sm:rounded-[24px] lg:rounded-[28px] shadow-2xl">
         <header className="h-16 sm:h-[72px] bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-7 sticky top-0 z-20 shrink-0 gap-3">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
               <Menu className="w-5 h-5 text-[#141414]" />
             </button>
-            <div className={cn("flex items-center gap-2 cursor-pointer", sidebarOpen && "lg:hidden")}>
+            <div
+              onClick={() => handleNavigate('/dashboard')}
+              className={cn('flex items-center gap-2 cursor-pointer', sidebarOpen && 'lg:hidden')}
+            >
               <img src="/logo-postsapp-light.png" alt="PostsApp" className="h-7 object-contain" />
             </div>
             <div className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F5F5F8] border border-gray-100 text-xs font-semibold text-[#4B5563]">
               <span className="w-2 h-2 rounded-full bg-[#D4191F]" />
-              <span>Welcome, <strong className="text-[#141414]">{creatorDisplayName}</strong></span>
+              <span>
+                Welcome, <strong className="text-[#141414]">{creatorDisplayName}</strong>
+              </span>
             </div>
           </div>
 
           <div className="flex-1 max-w-md px-2 hidden xl:block">
-            <div className="relative">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleNavigate('/content');
+              }}
+              className="relative"
+            >
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <Search className="w-4 h-4 text-[#9CA3AF]" />
               </div>
-              <input type="text" placeholder="Search across your channel..." className="w-full pl-10 pr-4 py-2 bg-[#F7F7FA] border border-gray-100 focus:bg-white focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] rounded-full text-xs transition-all outline-none" />
-            </div>
+              <input
+                type="text"
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                placeholder="Search across your channel..."
+                className="w-full pl-10 pr-4 py-2 bg-[#F7F7FA] border border-gray-100 focus:bg-white focus:border-[#D4191F] rounded-full text-xs transition-all outline-none"
+              />
+            </form>
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3.5">
-            <button onClick={() => setShowCreateModal(true)} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#141414] hover:bg-black text-white rounded-full text-xs font-extrabold tracking-wider transition-colors shadow-sm">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#141414] hover:bg-black text-white rounded-full text-xs font-extrabold tracking-wider transition-colors shadow-sm"
+            >
               <Upload className="w-3.5 h-3.5" />
               <span>CREATE</span>
             </button>
-            <button onClick={() => setShowCreateModal(true)} className="sm:hidden p-2 bg-[#141414] text-white rounded-full transition-colors">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="sm:hidden p-2 bg-[#141414] text-white rounded-full transition-colors"
+            >
               <Upload className="w-4 h-4" />
             </button>
-            <button 
-              onClick={() => setActivePage('Notifications')}
+            <button
+              onClick={() => handleNavigate('/notifications')}
               className="p-2 hover:bg-gray-100 rounded-full relative transition-colors"
             >
               <Bell className="w-5 h-5 text-[#141414]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#D4191F] rounded-full"></span>
             </button>
-            <button 
-              onClick={() => setActivePage('Profile')}
+            <button
+              onClick={() => handleNavigate('/profile')}
               className="flex items-center gap-2.5 pl-1 pr-2.5 py-1 hover:bg-gray-100 rounded-full transition-colors"
             >
               {userProfile?.avatarUrl ? (
@@ -474,435 +468,167 @@ export default function App() {
           </div>
         </header>
 
-        <main className={cn("flex-1 min-h-0 overflow-y-auto studio-main-scroll bg-white", activePage === 'Profile' ? "p-0" : "p-4 sm:p-6 lg:p-8")}>
-          {activePage === 'Dashboard' && (
-            <Dashboard
-              onCreateClick={() => setShowCreateModal(true)}
-              onNavigate={navigateTo}
-              userProfile={userProfile}
+        <main
+          className={cn(
+            'flex-1 min-h-0 overflow-y-auto studio-main-scroll bg-white',
+            pathname.startsWith('/profile') ? 'p-0' : 'p-4 sm:p-6 lg:p-8'
+          )}
+        >
+          <Routes>
+            <Route
+              path="/"
+              element={<Navigate to="/dashboard" replace />}
             />
-          )}
-          {activePage === 'Content' && <Content />}
-          {activePage === 'Stories' && <StoriesPage />}
-          {activePage === 'Comments' && <Comments />}
-          {activePage === 'Subtitles' && <Subtitles />}
-          {activePage === 'Earn' && <Earn />}
-          {activePage === 'Notifications' && <Notifications />}
-          {activePage === 'Profile' && <Profile onCreatePost={() => setShowCreateModal(true)} />}
-          {activePage === 'Settings' && (
-            <div className="max-w-[800px] mx-auto animate-in fade-in duration-300">
-              <h1 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-tight">Settings</h1>
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
-                  <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl font-bold">
-                    {(userProfile?.username || userProfile?.email || 'C').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold">{userProfile?.username || 'Creator'}</h2>
-                    <p className="text-sm text-gray-500">{userProfile?.email}</p>
+            <Route
+              path="/dashboard"
+              element={
+                <Dashboard
+                  onCreateClick={() => setShowCreateModal(true)}
+                  onNavigate={handleNavigate}
+                  userProfile={userProfile}
+                />
+              }
+            />
+            <Route path="/content" element={<Content />} />
+            <Route path="/editor/new" element={<EditorPage userProfile={userProfile} />} />
+            <Route path="/editor/:postId" element={<EditorPage userProfile={userProfile} />} />
+            <Route path="/stories" element={<StoriesPage />} />
+            <Route path="/media" element={<MediaLibraryPage />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/comments" element={<Comments />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/profile" element={<Profile onCreatePost={() => setShowCreateModal(true)} />} />
+            <Route
+              path="/settings"
+              element={
+                <div className="max-w-[800px] mx-auto animate-in fade-in duration-300">
+                  <h1 className="text-2xl font-black text-gray-900 mb-6 uppercase tracking-tight">Settings</h1>
+                  <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
+                      <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl font-bold">
+                        {creatorDisplayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold">{creatorDisplayName}</h2>
+                        <p className="text-sm text-gray-500">{userProfile?.email}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="text-sm font-medium text-gray-700">Role</div>
+                        <div className="text-sm text-gray-500 mt-1 capitalize">{userProfile?.role || 'Creator'}</div>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="text-sm font-medium text-gray-700">Account Status</div>
+                        <div className="text-sm text-emerald-700 font-semibold mt-1 uppercase">
+                          {userProfile?.account_status || 'active'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-sm font-medium text-gray-700">Role</div>
-                    <div className="text-sm text-gray-500 mt-1 capitalize">{userProfile?.role || 'Creator'}</div>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-sm font-medium text-gray-700">Account Created</div>
-                    <div className="text-sm text-gray-500 mt-1">{userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'N/A'}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {activePage === 'Feedback' && (
-            <div className="max-w-[700px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-8">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Send feedback</h1>
-                <p className="text-sm text-gray-500 mt-1">Help us improve the community by sharing your thoughts.</p>
-              </div>
-
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-5 sm:p-8 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#FEF2F2] rounded-2xl flex items-center justify-center shrink-0">
-                      <Wand2 className="w-5 h-5 text-[#D4191F]" />
+              }
+            />
+            <Route
+              path="/feedback"
+              element={
+                <div className="max-w-[700px] mx-auto animate-in fade-in duration-300">
+                  <h1 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Send Feedback</h1>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Report issues or suggest improvements directly to the PostsApp platform team.
+                  </p>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Feedback Type</label>
+                      <div className="flex gap-2">
+                        {(['suggestion', 'bug', 'other'] as const).map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setFeedbackCategory(cat)}
+                            className={cn(
+                              'px-4 py-2 rounded-xl text-xs font-bold uppercase transition-colors',
+                              feedbackCategory === cat ? 'bg-[#D4191F] text-white' : 'bg-gray-100 text-gray-600'
+                            )}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-900">What's on your mind?</div>
-                      <div className="text-xs text-gray-500">Select a category and let us know</div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Message</label>
+                      <textarea
+                        rows={5}
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder="Share details..."
+                        className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#D4191F]"
+                      />
                     </div>
-                  </div>
-                  <div className="flex bg-white p-1 rounded-xl border border-gray-100">
-                    {(['bug', 'suggestion', 'other'] as const).map(cat => (
-                      <button 
-                        key={cat}
-                        onClick={() => setFeedbackCategory(cat)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all",
-                          feedbackCategory === cat ? "bg-[#D4191F] text-white shadow-sm" : "text-gray-400 hover:text-gray-600"
-                        )}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-5 sm:p-8">
-                  <textarea 
-                    value={feedbackText}
-                    onChange={e => setFeedbackText(e.target.value)}
-                    className="w-full p-6 bg-gray-50 border border-gray-100 rounded-2xl text-sm resize-none min-h-[250px] focus:bg-white focus:border-[#D4191F] focus:ring-2 focus:ring-red-500/10 outline-none transition-all placeholder:text-gray-300" 
-                    placeholder={
-                      feedbackCategory === 'bug' ? "What went wrong? Describe the bug in detail..." :
-                      feedbackCategory === 'suggestion' ? "I have a great idea for..." :
-                      "Share anything else with us..."
-                    }
-                  />
-                  
-                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                      Your feedback helps everyone
-                    </div>
-                    <button 
+                    <button
                       onClick={handleFeedbackSubmit}
                       disabled={isSubmittingFeedback || !feedbackText.trim()}
-                      className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-2xl text-sm font-black tracking-widest uppercase transition-all shadow-lg shadow-red-100 hover:shadow-red-200 flex items-center justify-center gap-3"
+                      className="px-6 py-3 bg-[#D4191F] hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold"
                     >
-                      {isSubmittingFeedback ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                      SUBMIT FEEDBACK
+                      {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-          {!['Dashboard', 'Content', 'Stories', 'Comments', 'Subtitles', 'Earn', 'Notifications', 'Profile', 'Settings', 'Feedback'].includes(activePage) && (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <p className="text-lg">The <strong>{activePage}</strong> page is under construction.</p>
-            </div>
-          )}
+              }
+            />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
       </div>
 
-      {/* CREATE Type Selection Modal */}
+      {/* Create Content Format Picker Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-100">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Create New Content</h2>
-                <p className="text-sm text-gray-500 mt-1">Choose what you'd like to create</p>
-              </div>
-              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
+              <h2 className="text-xl font-bold text-gray-900">Choose Content Format</h2>
+              <button onClick={() => setShowCreateModal(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-3">
-              {[
-                { type: 'blog' as const, icon: FileText, label: 'Headlines', desc: 'Write an article or story', color: '#8B5CF6' },
-                { type: 'news' as const, icon: Newspaper, label: 'Article', desc: 'Share breaking news or updates', color: '#0EA5E9' },
-                { type: 'video' as const, icon: Video, label: 'Video', desc: 'Upload a video report', color: '#EF4444' },
-              ].map(opt => (
-                <button key={opt.type} onClick={() => handleCreateSelect(opt.type)} className="w-full flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all text-left group">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: opt.color + '15' }}>
-                    <opt.icon className="w-6 h-6" style={{ color: opt.color }} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-900 text-sm group-hover:text-[#D4191F] transition-colors">{opt.label}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Content Creation Form Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateForm(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: (createType === 'blog' ? '#8B5CF6' : createType === 'news' ? '#0EA5E9' : '#EF4444') + '15' }}>
-                  {createType === 'blog' && <FileText className="w-4 h-4 text-[#8B5CF6]" />}
-                  {createType === 'news' && <Newspaper className="w-4 h-4 text-[#0EA5E9]" />}
-                  {createType === 'video' && <Video className="w-4 h-4 text-[#EF4444]" />}
+            <div className="p-6 grid grid-cols-1 gap-3">
+              <button
+                onClick={() => handleStartEditor('news')}
+                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-[#D4191F] hover:bg-red-50/40 transition-all text-left"
+              >
+                <div className="w-11 h-11 rounded-full bg-red-100 text-[#D4191F] flex items-center justify-center shrink-0">
+                  <Newspaper className="w-5 h-5" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  New {createType === 'blog' ? 'Headline' : createType === 'news' ? 'Article' : 'Video'}
-                </h2>
-              </div>
-              <button onClick={() => setShowCreateForm(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
+                <div>
+                  <h3 className="font-bold text-gray-900">Bilingual News Article</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Rich TipTap editorial editor with English &amp; Tamil linking and SEO metadata</p>
+                </div>
               </button>
-            </div>
-            <div className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-                <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder={`Enter ${createType === 'blog' ? 'headline' : createType === 'news' ? 'article' : 'video'} title...`} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] outline-none transition-all" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Author Name</label>
-                  <input type="text" value={createAuthorName} onChange={e => setCreateAuthorName(e.target.value)} placeholder="e.g., Rajesh Kumar" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] outline-none transition-all" />
+              <button
+                onClick={() => handleStartEditor('blog')}
+                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all text-left"
+              >
+                <div className="w-11 h-11 rounded-full bg-gray-100 text-gray-900 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Author Position</label>
-                  <input type="text" value={createAuthorPosition} onChange={e => setCreateAuthorPosition(e.target.value)} placeholder="e.g., Senior Political Analyst" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] outline-none transition-all" />
+                  <h3 className="font-bold text-gray-900">Quick Headline / Brief</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Fast-turnaround headline brief or analysis</p>
                 </div>
-              </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                    <div className="flex flex-wrap gap-2">
-                      {CATEGORIES.map(cat => (
-                        <button key={cat} onClick={() => setCreateCategory(cat)} className={cn("px-3 py-1.5 rounded-full text-xs font-medium border transition-colors", createCategory === cat ? "bg-red-50 border-red-300 text-red-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100")}>{cat}</button>
-                      ))}
-                    </div>
-                    {createCategory === 'Custom' && (
-                      <div className="mt-3 animate-in slide-in-from-top-2 duration-200">
-                        <input 
-                          type="text" 
-                          value={customCategory} 
-                          onChange={e => setCustomCategory(e.target.value)} 
-                          placeholder="Enter custom category name..." 
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none transition-all"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
-                    {createType === 'blog' ? (
-                      <div>
-                        <textarea
-                          value={createContent}
-                          onChange={e => {
-                            if (e.target.value.length <= 500) setCreateContent(e.target.value);
-                          }}
-                          maxLength={500}
-                          placeholder="Write your headline content here (max 500 characters)..."
-                          className="w-full px-6 py-5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 outline-none resize-none leading-relaxed focus:border-[#D4191F] focus:ring-1 focus:ring-[#D4191F] transition-all"
-                          style={{ minHeight: '200px', maxHeight: '400px' }}
-                        />
-                        <div className={cn(
-                          "text-xs mt-2 text-right font-medium transition-colors",
-                          createContent.length >= 480 ? "text-red-500" : createContent.length >= 400 ? "text-amber-500" : "text-gray-400"
-                        )}>
-                          {createContent.length}/500 characters
-                        </div>
-                      </div>
-                    ) : (
-                      <RichTextEditor
-                        value={createContent}
-                        onChange={setCreateContent}
-                        placeholder={`Write your ${createType} content here...`}
-                        minHeight="200px"
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Hashtags (Max 5)</label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {createHashtags.map((tag, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-100 group">
-                          #{tag}
-                          <button 
-                            type="button"
-                            onClick={() => handleRemoveHashtag(idx)}
-                            className="hover:text-red-900 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                      {createHashtags.length === 0 && (
-                        <span className="text-xs text-gray-400 italic">No hashtags added yet</span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={hashtagInput} 
-                        onChange={e => setHashtagInput(e.target.value)} 
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
-                            e.preventDefault();
-                            handleAddHashtag(hashtagInput);
-                          }
-                        }}
-                        placeholder={createHashtags.length >= 5 ? "Hashtag limit reached" : "Type #hashtag and hit Enter..."} 
-                        disabled={createHashtags.length >= 5}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => handleAddHashtag(hashtagInput)}
-                        disabled={createHashtags.length >= 5 || !hashtagInput.trim()}
-                        className="absolute right-2 top-1.5 px-3 py-1.5 bg-gray-900 text-white text-[10px] font-bold rounded-lg hover:bg-black transition-colors disabled:opacity-30"
-                      >
-                        ADD
-                      </button>
-                    </div>
-                    <p className="mt-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-                      {createHashtags.length}/5 hashtags saved
-                    </p>
-                  </div>
+              </button>
+              <button
+                onClick={() => handleStartEditor('video')}
+                className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50/40 transition-all text-left"
+              >
+                <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                  <Video className="w-5 h-5" />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thumbnail *
-                  </label>
-                {thumbnailPreview ? (
-                  <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                    <img src={thumbnailPreview} alt="Thumbnail preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => { setCreateThumbnailFile(null); setThumbnailPreview(null); }}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label
-                    className="flex flex-col items-center justify-center w-full h-40 bg-gray-50 border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl cursor-pointer transition-colors group"
-                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={e => {
-                      e.preventDefault(); e.stopPropagation();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file && file.type.startsWith('image/')) {
-                        setCreateThumbnailFile(file);
-                        setThumbnailPreview(URL.createObjectURL(file));
-                      }
-                    }}
-                  >
-                    <ImagePlus className="w-10 h-10 text-gray-400 group-hover:text-blue-500 transition-colors mb-2" />
-                    <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600 transition-colors">Click to upload or drag & drop</span>
-                    <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP up to 5MB</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setCreateThumbnailFile(file);
-                          setThumbnailPreview(URL.createObjectURL(file));
-                        }
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-              {createType === 'video' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Upload Video *
-                    </label>
-                    {videoPreview ? (
-                      <div className="relative w-full rounded-xl overflow-hidden border border-gray-200 bg-black">
-                        <video src={videoPreview} controls className="w-full max-h-[300px] object-contain" />
-                        <button
-                          type="button"
-                          onClick={() => { setCreateVideoFile(null); setVideoPreview(null); }}
-                          className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label
-                        className="flex flex-col items-center justify-center w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 hover:border-red-400 rounded-xl cursor-pointer transition-colors group"
-                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                        onDrop={e => {
-                          e.preventDefault(); e.stopPropagation();
-                          const file = e.dataTransfer.files?.[0];
-                          if (file && file.type.startsWith('video/')) {
-                            setCreateVideoFile(file);
-                            setVideoPreview(URL.createObjectURL(file));
-                          }
-                        }}
-                      >
-                        <Film className="w-12 h-12 text-gray-400 group-hover:text-red-500 transition-colors mb-2" />
-                        <span className="text-sm font-medium text-gray-600 group-hover:text-red-600 transition-colors">Click to upload or drag & drop video</span>
-                        <span className="text-xs text-gray-400 mt-1">MP4, MOV, WebM up to 500MB</span>
-                        <input
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setCreateVideoFile(file);
-                              setVideoPreview(URL.createObjectURL(file));
-                              // Auto-detect duration
-                              const videoEl = document.createElement('video');
-                              videoEl.preload = 'metadata';
-                              videoEl.onloadedmetadata = () => {
-                                const mins = Math.floor(videoEl.duration / 60);
-                                const secs = Math.floor(videoEl.duration % 60);
-                                setCreateVideoDuration(`${mins}:${secs.toString().padStart(2, '0')}`);
-                                URL.revokeObjectURL(videoEl.src);
-                              };
-                              videoEl.src = URL.createObjectURL(file);
-                            }
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Duration</label>
-                    <input type="text" value={createVideoDuration} onChange={e => setCreateVideoDuration(e.target.value)} placeholder="e.g., 12:30 (auto-detected from video)" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="p-6 border-t border-gray-100 flex flex-col gap-4 sticky bottom-0 bg-white">
-              {isScheduling && (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100 animate-in slide-in-from-bottom-2">
-                  <label className="text-sm font-bold text-gray-700 whitespace-nowrap">Schedule for:</label>
-                  <input type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="flex-1 px-3 py-1.5 rounded-lg border border-blue-200 text-sm outline-none bg-white" />
-                  <div className="flex justify-end gap-2 w-full sm:w-auto">
-                    <button onClick={() => setIsScheduling(false)} className="px-4 py-2 text-xs text-gray-500 hover:text-gray-900 font-bold">Cancel</button>
-                    <button onClick={() => handleAction('SCHEDULED')} disabled={!scheduleDate || isPublishing} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors">
-                      Confirm Schedule
-                    </button>
-                  </div>
+                  <h3 className="font-bold text-gray-900">Video Report</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Upload MP4/WebM video report with bilingual article notes</p>
                 </div>
-              )}
-              
-              {!isScheduling && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="w-full sm:w-auto flex justify-start">
-                     <button onClick={() => handleAction('ARCHIVED')} disabled={isPublishing} className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 border border-transparent hover:border-gray-200 rounded-full transition-colors flex justify-center">
-                       Save as Draft
-                     </button>
-                  </div>
-                  <div className="flex w-full sm:w-auto justify-end gap-2 sm:gap-3">
-                    <button onClick={() => setShowCreateForm(false)} disabled={isPublishing} className="flex-1 sm:flex-none px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-full transition-colors text-center">Cancel</button>
-                    
-                    <button onClick={() => setIsScheduling(true)} disabled={isPublishing} className="flex-1 sm:flex-none px-5 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 border border-blue-100 hover:border-blue-200 rounded-full transition-colors text-center">
-                      Schedule
-                    </button>
-                    
-                    <button onClick={() => handleAction('PUBLISHED')} disabled={isPublishing || (!createTitle.trim() || !createContent.trim() || !createCategory || !createThumbnailFile)} className="flex-1 sm:flex-none px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-full text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2">
-                      {isPublishing ? (
-                        <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Saving...</>
-                      ) : 'Publish'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              </button>
             </div>
           </div>
         </div>

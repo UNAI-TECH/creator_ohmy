@@ -56,13 +56,10 @@ export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
     setUsernameStatus('checking');
     debounceTimer.current = setTimeout(async () => {
       try {
-        const { data, error } = await supabase
-          .from('creator_requests')
-          .select('username')
-          .ilike('username', cleaned)
-          .limit(1);
+        const { data: available, error } = await supabase
+          .rpc('check_username_available', { p_username: cleaned });
 
-        if (data && data.length > 0) {
+        if (!error && available === false) {
           setUsernameStatus('taken');
           setSuggestions([
             `${cleaned}_01`,

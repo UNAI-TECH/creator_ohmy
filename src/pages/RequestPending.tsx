@@ -23,20 +23,16 @@ export default function RequestPending({ onBack, onGoToLogin, applicantEmail }: 
     }
 
     try {
-      const { data, error } = await supabase
-        .from('creator_requests')
-        .select('status, admin_message')
-        .eq('email', applicantEmail)
-        .limit(1)
-        .maybeSingle();
+      const { data: rows, error } = await supabase
+        .rpc('get_creator_request_status', { p_email: applicantEmail });
 
       if (error) {
         console.error('Status check error:', error);
-        // Don't set not_found on error - could be a network issue
         setLoading(false);
         return;
       }
 
+      const data = Array.isArray(rows) ? rows[0] : rows;
       if (!data) {
         setStatus('not_found');
       } else {
