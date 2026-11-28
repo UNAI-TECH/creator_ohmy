@@ -23,6 +23,7 @@ import {
 import { cn } from './lib/utils';
 import { supabase } from './lib/supabaseClient';
 import { useToast } from './context/ToastContext';
+import { notificationService } from './services/notificationService';
 
 import Dashboard from './pages/Dashboard';
 import Content from './pages/Content';
@@ -46,12 +47,14 @@ const SidebarItem = ({
   active = false,
   onClick,
   danger = false,
+  badge,
 }: {
   icon: any;
   label: string;
   active?: boolean;
   onClick?: () => void;
   danger?: boolean;
+  badge?: number;
 }) => (
   <button
     onClick={onClick}
@@ -65,7 +68,12 @@ const SidebarItem = ({
     )}
   >
     <Icon className={cn('w-[17px] h-[17px] shrink-0', active ? 'text-white' : 'text-white/80')} />
-    <span className="truncate">{label}</span>
+    <span className="truncate flex-1 text-left">{label}</span>
+    {typeof badge === 'number' && badge > 0 && (
+      <span className="px-1.5 py-0.5 min-w-[20px] text-center rounded-full bg-white text-[#D4191F] text-[10px] font-extrabold leading-none">
+        {badge > 99 ? '99+' : badge}
+      </span>
+    )}
   </button>
 );
 
@@ -95,6 +103,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -131,11 +140,37 @@ export default function App() {
       if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setUserProfile(null);
+        setUnreadNotifCount(0);
         navigate('/');
       }
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadNotifCount(0);
+      return;
+    }
+
+    let cancelled = false;
+    const refreshUnread = async () => {
+      try {
+        const list = await notificationService.getMyNotifications();
+        if (!cancelled) {
+          setUnreadNotifCount(list.filter((n) => !n.isRead).length);
+        }
+      } catch {}
+    };
+
+    refreshUnread();
+    const sub = notificationService.subscribeToNotifications(refreshUnread);
+
+    return () => {
+      cancelled = true;
+      sub.unsubscribe();
+    };
+  }, [isAuthenticated]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -348,6 +383,7 @@ export default function App() {
                 label="Notifications"
                 active={pathname.startsWith('/notifications')}
                 onClick={() => handleNavigate('/notifications')}
+                badge={unreadNotifCount}
               />
               <SidebarItem
                 icon={User}
@@ -447,8 +483,14 @@ export default function App() {
             <button
               onClick={() => handleNavigate('/notifications')}
               className="p-2 hover:bg-gray-100 rounded-full relative transition-colors"
+              title="Channel notifications"
             >
               <Bell className="w-5 h-5 text-[#141414]" />
+              {unreadNotifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#D4191F] text-white text-[10px] font-extrabold flex items-center justify-center shadow-sm">
+                  {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => handleNavigate('/profile')}

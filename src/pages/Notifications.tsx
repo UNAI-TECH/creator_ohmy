@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCircle2, Search, MoreVertical, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Bell, CheckCircle2, Search, MoreVertical, Trash2, CheckSquare, Square, Heart, MessageSquare, UserPlus, CornerDownRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { notificationService, CreatorNotification } from '../services/notificationService';
 import { useModal } from '../context/ModalContext';
@@ -126,21 +126,62 @@ export default function Notifications() {
     setShowGlobalMenu(false);
   };
 
-  const tabs = ['All', 'Comments', 'Likes', 'Follows', 'Repost'];
+  const tabs = ['All', 'Comments', 'Likes', 'Follows'];
 
   const filteredNotifications = notifications.filter(notif => {
-    const type = notif.type?.toLowerCase() || '';
+    const type = (notif.type || '').toLowerCase();
     const tab = activeTab.toLowerCase();
-    
-    if (tab === 'all') return true;
-    
-    if (tab === 'repost') {
-      return type === 'repost' || type === 'system' || type === 'new_post';
-    }
-    
-    // Exact match or singular/plural common cases (e.g., 'comments' matches 'comment')
-    return type === tab || type === tab.slice(0, -1) || tab === type.slice(0, -1);
+
+    if (type === 'repost') return false;
+
+    const matchesTab =
+      tab === 'all' ||
+      (tab === 'comments' && (type === 'comment' || type === 'comments' || type === 'reply')) ||
+      (tab === 'likes' && (type === 'like' || type === 'likes')) ||
+      (tab === 'follows' && (type === 'follow' || type === 'follows'));
+
+    if (!matchesTab) return false;
+
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+
+    return (
+      (notif.title || '').toLowerCase().includes(q) ||
+      (notif.message || '').toLowerCase().includes(q) ||
+      (notif.actorName || '').toLowerCase().includes(q) ||
+      (notif.postTitle || '').toLowerCase().includes(q)
+    );
   });
+
+  const getNotifIcon = (notif: CreatorNotification) => {
+    const t = (notif.type || '').toUpperCase();
+    if (t === 'FOLLOW') {
+      return (
+        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+          <UserPlus className="w-4 h-4" />
+        </div>
+      );
+    }
+    if (t === 'LIKE') {
+      return (
+        <div className="w-10 h-10 rounded-2xl bg-red-50 text-[#D4191F] flex items-center justify-center shrink-0 border border-red-100">
+          <Heart className="w-4 h-4" />
+        </div>
+      );
+    }
+    if (notif.isReply || t === 'REPLY') {
+      return (
+        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+          <CornerDownRight className="w-4 h-4" />
+        </div>
+      );
+    }
+    return (
+      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+        <MessageSquare className="w-4 h-4" />
+      </div>
+    );
+  };
 
   const allRead = filteredNotifications.every(n => n.isRead) && filteredNotifications.length > 0;
 
@@ -265,15 +306,32 @@ export default function Notifications() {
                     </div>
                   </div>
                 )}
+
+                {notif.actorAvatar ? (
+                  <img
+                    src={notif.actorAvatar}
+                    alt={notif.actorName || notif.title}
+                    className="w-10 h-10 rounded-2xl object-cover border border-gray-200 shrink-0"
+                  />
+                ) : (
+                  getNotifIcon(notif)
+                )}
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <h3 className={cn(
-                      "text-sm font-bold tracking-tight truncate",
-                      !notif.isRead ? "text-gray-900" : "text-gray-600"
-                    )}>
-                      {notif.title}
-                    </h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className={cn(
+                        "text-sm font-bold tracking-tight truncate",
+                        !notif.isRead ? "text-gray-900" : "text-gray-600"
+                      )}>
+                        {notif.title}
+                      </h3>
+                      {notif.isReply && (
+                        <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+                          Reply
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap bg-gray-100 px-2 py-0.5 rounded-full">
                       {new Date(notif.createdAt).toLocaleDateString()}
                     </span>

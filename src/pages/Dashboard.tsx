@@ -5,10 +5,11 @@ import {
 import {
   Eye, FileText, Newspaper, Video, Users, ThumbsUp, ThumbsDown,
   MessageSquare, TrendingUp, Plus, Bell, ChevronLeft, ChevronRight, ArrowRight,
-  Bookmark, Share2
+  Bookmark, Share2, Heart, UserPlus, CornerDownRight
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { contentService, CreatorPost, CreatorStats } from '../services/contentService';
+import { notificationService, CreatorNotification } from '../services/notificationService';
 import { invalidateMemCache } from '../lib/cache';
 
 interface DashboardProps {
@@ -61,6 +62,8 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
   const [recentPosts, setRecentPosts] = useState<CreatorPost[]>([]);
   const [allPosts, setAllPosts] = useState<CreatorPost[]>([]);
   const [recentComments, setRecentComments] = useState<any[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<CreatorNotification[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,15 +71,18 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
   const fetchData = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
     try {
-      const [statsData, posts, comments] = await Promise.all([
+      const [statsData, posts, comments, notifs] = await Promise.all([
         contentService.getMyStats(),
         contentService.getMyPosts(),
-        contentService.getMyComments(),
+        contentService.getMyComments(true),
+        notificationService.getMyNotifications().catch(() => [] as CreatorNotification[]),
       ]);
       setStats(statsData);
       setAllPosts(posts);
       setRecentPosts(posts.slice(0, 5));
       setRecentComments(comments.slice(0, 3));
+      setRecentNotifications(notifs.slice(0, 5));
+      setUnreadNotifCount(notifs.filter((n) => !n.isRead).length);
     } catch (e) {
       console.warn('Dashboard fetch error:', e);
     } finally {
@@ -87,7 +93,7 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
   useEffect(() => {
     fetchData(true);
 
-    const sub = contentService.subscribeToMyPostUpdates(() => {
+    const triggerRealtimeRefresh = () => {
       invalidateMemCache('creator:stats:');
       invalidateMemCache('creator:posts:');
       invalidateMemCache('creator:comments:');
@@ -95,12 +101,16 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       retryTimerRef.current = setTimeout(() => {
         fetchData(false);
-      }, 300);
-    });
+      }, 250);
+    };
+
+    const sub = contentService.subscribeToMyPostUpdates(triggerRealtimeRefresh);
+    const notifSub = notificationService.subscribeToNotifications(triggerRealtimeRefresh);
 
     return () => {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       sub.unsubscribe();
+      notifSub.unsubscribe();
     };
   }, [fetchData]);
 
@@ -312,12 +322,15 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
                   </div>
                   <div>
                     <h4 className="text-sm sm:text-base font-bold leading-snug">
-                      {recentPosts.length > 0
+                      {unreadNotifCount > 0 && recentNotifications[0]
+                        ? `${recentNotifications[0].title}: ${recentNotifications[0].message}`
+                        : recentPosts.length > 0
                         ? `Latest story "${recentPosts[0].title}" has ${formatNumber(recentPosts[0].view_count || 0)} views`
                         : 'Ready to publish your next story on PostsApp'}
                     </h4>
                     <p className="text-xs text-white/80 mt-1">
-                      {formatNumber(stats?.totalLikes || 0)} likes · {formatNumber(stats?.totalDislikes || 0)} dislikes · {formatNumber(stats?.totalComments || 0)} comments across your channel
+                      {unreadNotifCount > 0 ? `${unreadNotifCount} unread notification${unreadNotifCount === 1 ? '' : 's'} · ` : ''}
+                      {formatNumber(stats?.totalLikes || 0)} likes · {formatNumber(stats?.totalFollowers || 0)} followers · {formatNumber(stats?.totalComments || 0)} comments
                     </p>
                   </div>
                 </div>
@@ -513,9 +526,82 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
           </Card>
         </div>
 
-        {/* Latest Reader Comments Thread matching Reference Bubble Feed */}
-        <div className="xl:col-span-4">
-          <div className="bg-[#F7F7FA] rounded-2xl border border-gray-100 p-5 h-full flex flex-col">
+        {/* Live Notifications + Latest Reader Comments Thread */}
+        <div className="xl:col-span-4 flex flex-col gap-6">
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-[0_4px_20px_rgba(17,24,39,0.03)] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-[#141414]">Live Notifications</h3>
+                {unreadNotifCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-[#D4191F] text-white text-[10px] font-extrabold">
+                    {unreadNotifCount}
+                  </span>
+                )}
+              </div>
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('Notifications')}
+                  className="text-xs font-semibold text-[#D4191F] hover:text-[#141414] transition-colors"
+                >
+                  View all
+                </button>
+              )}
+            </div>
+
+            {recentNotifications.length > 0 ? (
+              <div className="flex flex-col gap-2.5">
+                {recentNotifications.map((notif) => {
+                  const nType = (notif.type || '').toUpperCase();
+                  const IconComp =
+                    nType === 'FOLLOW' ? UserPlus : nType === 'LIKE' ? Heart : notif.isReply ? CornerDownRight : MessageSquare;
+                  const iconBg =
+                    nType === 'FOLLOW'
+                      ? 'bg-blue-50 text-blue-600'
+                      : nType === 'LIKE'
+                      ? 'bg-red-50 text-[#D4191F]'
+                      : notif.isReply
+                      ? 'bg-purple-50 text-purple-600'
+                      : 'bg-amber-50 text-amber-600';
+
+                  return (
+                    <button
+                      key={notif.id}
+                      onClick={async () => {
+                        if (!notif.isRead) {
+                          await notificationService.markAsRead(notif.id).catch(() => {});
+                        }
+                        onNavigate?.('Notifications');
+                      }}
+                      className={`w-full text-left flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                        notif.isRead
+                          ? 'bg-[#FAFAFC] border-gray-100 hover:bg-gray-50'
+                          : 'bg-red-50/40 border-red-100 hover:bg-red-50/70'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-[#141414] truncate">{notif.title}</span>
+                          <span className="text-[10px] text-gray-400 shrink-0">{formatTimeAgo(notif.createdAt)}</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-0.5 line-clamp-2 leading-snug">{notif.message}</p>
+                      </div>
+                      {!notif.isRead && <span className="w-2 h-2 rounded-full bg-[#D4191F] mt-1.5 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center py-6 text-gray-400 text-xs bg-[#FAFAFC] rounded-xl border border-gray-100 p-4">
+                <Bell className="w-6 h-6 text-gray-300 mb-1.5" />
+                Follows, likes, comments &amp; replies will appear here in realtime.
+              </div>
+            )}
+          </div>
+
+          <div className="bg-[#F7F7FA] rounded-2xl border border-gray-100 p-5 flex-1 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-[#141414]">Latest comments</h3>
               {onNavigate && (
