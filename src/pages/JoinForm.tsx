@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Mail, FileText, Globe, ArrowLeft, ArrowRight, Loader2, CheckCircle, Building2, UserCircle2, Users } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 interface JoinFormProps {
   onBack: () => void;
@@ -124,7 +125,7 @@ export default function JoinForm({ onBack, onSubmitSuccess }: JoinFormProps) {
         if (insertError.message.includes('duplicate') || insertError.code === '23505') {
           setError('An application with this email or username already exists.');
         } else {
-          setError(insertError.message);
+          setError(logAndGetFriendlyError(insertError, 'Something went wrong while submitting your application. Please try again.', 'JoinForm:submit'));
         }
         return;
       }

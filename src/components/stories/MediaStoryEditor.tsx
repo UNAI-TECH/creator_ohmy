@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, Smile, Type, Pencil, Trash2, Loader2, Music, Download, MoreVertical } from 'lucide-react';
 import { storyService } from '../../services/storyService';
 import { useToast } from '../../context/ToastContext';
+import { logAndGetFriendlyError } from '../../lib/errorHandler';
 
 interface MediaStoryEditorProps {
   file: File;
@@ -41,7 +42,7 @@ export default function MediaStoryEditor({ file, onClose, onSuccess }: MediaStor
       success('Story posted successfully!');
       onSuccess();
     } catch (err: any) {
-      error('Upload failed: ' + err.message);
+      error(logAndGetFriendlyError(err, 'Something went wrong while uploading your story.', 'MediaStoryEditor:send'));
     } finally {
       setIsUploading(false);
     }

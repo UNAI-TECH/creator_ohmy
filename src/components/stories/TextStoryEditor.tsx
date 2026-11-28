@@ -3,6 +3,7 @@ import { X, Send, Smile, Type, Palette, Loader2 } from 'lucide-react';
 import { storyService } from '../../services/storyService';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../context/ToastContext';
+import { logAndGetFriendlyError } from '../../lib/errorHandler';
 
 const COLORS = [
   '#E91E63', // Red/Pink
@@ -41,7 +42,7 @@ export default function TextStoryEditor({ onClose, onSuccess }: TextStoryEditorP
       success('Text story posted successfully!');
       onSuccess();
     } catch (err: any) {
-      error('Failed: ' + err.message);
+      error(logAndGetFriendlyError(err, 'Something went wrong while publishing your story.', 'TextStoryEditor:send'));
     } finally {
       setIsUploading(false);
     }

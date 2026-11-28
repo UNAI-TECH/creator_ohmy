@@ -39,7 +39,10 @@ import {
   MediaAssetRecord,
 } from '../services/contentService';
 import { supabase } from '../lib/supabaseClient';
+import { invalidateMemCache } from '../lib/cache';
 import { useToast } from '../context/ToastContext';
+import { useModal } from '../context/ModalContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
 
 type InspectorTab = 'taxonomy' | 'seo' | 'publish' | 'revisions';
@@ -50,6 +53,8 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { success, error, toast } = useToast();
+  const { confirm } = useModal();
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   const [postId, setPostId] = useState<string | null>(
     paramPostId && paramPostId !== 'new' ? paramPostId : null
@@ -128,7 +133,7 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
 
   const draftStorageKey = `postsapp_draft_${postId || 'new'}`;
 
-  // Load categories, tags, and post details
+  // Load categories, tags, and post details + live category sync
   useEffect(() => {
     const loadTaxonomy = async () => {
       try {
@@ -143,6 +148,18 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
       }
     };
     loadTaxonomy();
+
+    const catChannel = supabase
+      .channel('studio-editor-categories-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+        invalidateMemCache('studio:categories');
+        contentService.getCategories().then(setAllCategories).catch(() => {});
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(catChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -168,9 +185,20 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
 
     const loadPost = async () => {
       setLoading(true);
+      setPermissionError(null);
       try {
-        const detail = await contentService.getPostForEditor(targetId);
+        const [{ data: sessionData }, detail] = await Promise.all([
+          supabase.auth.getSession(),
+          contentService.getPostForEditor(targetId),
+        ]);
         const p = detail.post;
+        const activeUid = userProfile?.id || sessionData?.session?.user?.id;
+        const activeRole = String(userProfile?.role || '').toUpperCase();
+        if (activeUid && p.authorId && p.authorId !== activeUid && activeRole !== 'ADMIN') {
+          setPermissionError('This story belongs to another creator account. Please switch to the author account or pick one of your own stories from Content.');
+          setLoading(false);
+          return;
+        }
         setTitle(p.title || '');
         setSubtitle(p.subtitle || '');
         setShortDescription(p.short_description || '');
@@ -219,7 +247,7 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
           }
         }
       } catch (e: any) {
-        error(e?.message || 'Failed to open article');
+        error(logAndGetFriendlyError(e, 'Something went wrong while opening this article.', 'EditorPage:load'));
       } finally {
         setLoading(false);
       }
@@ -400,9 +428,12 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
         .eq('id', postId)
         .maybeSingle();
       if (latest?.updatedAt && latest.updatedAt !== loadedUpdatedAt) {
-        const proceed = window.confirm(
-          'This article was modified in another tab or by an administrator since you opened it. Overwrite with your changes?'
-        );
+        const proceed = await confirm({
+          title: 'Article Modified Elsewhere',
+          message: 'This article was updated in another tab or by an administrator since you opened it. Overwrite with your changes?',
+          confirmText: 'Overwrite & Save',
+          type: 'danger',
+        });
         if (!proceed) return null;
       }
     }
@@ -481,7 +512,9 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
       return saved;
     } catch (e: any) {
       setSaveStateLabel('Save failed');
-      if (!opts.silent) error(e?.message || 'Save failed');
+      if (!opts.silent) {
+        error(logAndGetFriendlyError(e, 'Something went wrong while saving your article. Please try again.', 'EditorPage:save'));
+      }
       return null;
     } finally {
       if (!opts.silent) setSaving(false);
@@ -551,12 +584,17 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
       }
       setTagInput('');
     } catch (e: any) {
-      error(e?.message || 'Failed to add tag');
+      error(logAndGetFriendlyError(e, 'Something went wrong while adding the tag.', 'EditorPage:tag'));
     }
   };
 
   const handleRestoreRevision = async (revId: string) => {
-    if (!window.confirm('Restore this version? Your current content will be preserved in revision history as well.')) return;
+    const confirmed = await confirm({
+      title: 'Restore Version',
+      message: 'Restore this version? Your current content will be preserved in revision history as well.',
+      confirmText: 'Restore Version',
+    });
+    if (!confirmed) return;
     try {
       const restored = await contentService.restoreRevision(revId);
       if (restored) {
@@ -575,7 +613,7 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
         success('Revision restored!');
       }
     } catch (e: any) {
-      error(e?.message || 'Restore failed');
+      error(logAndGetFriendlyError(e, 'Something went wrong while restoring this revision.', 'EditorPage:restore'));
     }
   };
 
@@ -608,6 +646,24 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
       <div className="py-24 flex flex-col items-center justify-center text-gray-500">
         <Loader2 size={32} className="animate-spin text-[#D4191F] mb-3" />
         <p className="text-sm font-medium">Loading Editorial Studio...</p>
+      </div>
+    );
+  }
+
+  if (permissionError) {
+    return (
+      <div className="max-w-lg mx-auto my-20 bg-white border border-gray-200 rounded-2xl p-8 text-center shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#D4191F] flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle size={24} />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to Edit Story</h2>
+        <p className="text-sm text-gray-600 leading-relaxed mb-6">{permissionError}</p>
+        <button
+          onClick={() => navigate('/content')}
+          className="px-5 py-2.5 bg-[#D4191F] hover:bg-[#9E1111] text-white rounded-xl text-sm font-bold transition-colors"
+        >
+          Back to My Content
+        </button>
       </div>
     );
   }

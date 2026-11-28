@@ -25,6 +25,7 @@ import { cn } from '../lib/utils';
 import { contentService, CreatorPost } from '../services/contentService';
 import { useModal } from '../context/ModalContext';
 import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 const TYPE_TABS = [
   { id: 'All', label: 'All' },
@@ -70,7 +71,7 @@ export default function Content() {
       const data = await contentService.getMyPosts();
       setPosts(data);
     } catch (e: any) {
-      error('Failed to load content: ' + (e?.message || 'Unknown error'));
+      error(logAndGetFriendlyError(e, 'Something went wrong while loading your content.', 'Content:fetch'));
     } finally {
       setLoading(false);
     }

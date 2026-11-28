@@ -7,6 +7,9 @@ import {
 import { cn } from '../lib/utils';
 import { contentService, CreatorComment } from '../services/contentService';
 import { supabase } from '../lib/supabaseClient';
+import { useModal } from '../context/ModalContext';
+import { useToast } from '../context/ToastContext';
+import { logAndGetFriendlyError } from '../lib/errorHandler';
 
 const tabs = ['Published'];
 
@@ -30,6 +33,8 @@ export default function Comments() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const { confirm } = useModal();
+  const { error: toastError } = useToast();
 
   const fetchComments = async (forceRefresh = false) => {
     setLoading(true);
@@ -96,14 +101,20 @@ export default function Comments() {
   };
 
   const handleDeleteComment = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this comment? It will also be removed from the app.")) return;
-    
+    const confirmed = await confirm({
+      title: 'Delete Comment',
+      message: 'Are you sure you want to delete this comment? It will also be removed from the public site.',
+      confirmText: 'Delete',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
     // Optimistic
     setComments(comments.filter(c => c.id !== id));
     try {
       await contentService.deleteComment(id);
     } catch (e) {
-      console.error(e);
+      toastError(logAndGetFriendlyError(e, 'Something went wrong while deleting the comment.', 'Comments:delete'));
       fetchComments(true); // rollback
     }
   };

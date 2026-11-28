@@ -73,7 +73,9 @@ export default function TipTapEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3, 4] },
-      }),
+        link: false,
+        underline: false,
+      } as any),
       Underline,
       Link.configure({
         openOnClick: false,

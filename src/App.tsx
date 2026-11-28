@@ -99,6 +99,8 @@ export default function App() {
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
   );
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [requireOtpPasswordSetup, setRequireOtpPasswordSetup] = useState(false);
+  const [pendingOtpEmail, setPendingOtpEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [globalSearch, setGlobalSearch] = useState('');
@@ -125,9 +127,17 @@ export default function App() {
         const allowedRoles = ['ANALYST', 'CREATOR', 'ADMIN'];
         const normalizedRole = String(profile?.role || '').trim().toUpperCase();
         const isActive = (profile?.account_status || 'active') === 'active';
+        const mustChangePass = Boolean(session.user.app_metadata?.must_change_password);
         if (allowedRoles.includes(normalizedRole) && isActive) {
-          setIsAuthenticated(true);
-          setUserProfile(profile);
+          if (mustChangePass) {
+            setPendingOtpEmail(session.user.email || profile?.email || '');
+            setRequireOtpPasswordSetup(true);
+            setIsAuthenticated(false);
+          } else {
+            setRequireOtpPasswordSetup(false);
+            setIsAuthenticated(true);
+            setUserProfile(profile);
+          }
         } else {
           await supabase.auth.signOut();
         }
@@ -175,12 +185,21 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
+    setRequireOtpPasswordSetup(false);
+    setPendingOtpEmail('');
     setUserProfile(null);
     navigate('/');
   };
 
   const handleLoginSuccess = async () => {
     const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.app_metadata?.must_change_password) {
+      setPendingOtpEmail(session.user.email || '');
+      setRequireOtpPasswordSetup(true);
+      setIsAuthenticated(false);
+      navigate('/login');
+      return;
+    }
     if (session?.user) {
       const { data: profile } = await supabase
         .from('User')
@@ -189,6 +208,7 @@ export default function App() {
         .maybeSingle();
       setUserProfile(profile);
     }
+    setRequireOtpPasswordSetup(false);
     setIsAuthenticated(true);
     navigate('/dashboard');
   };
@@ -241,6 +261,16 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
+    if (requireOtpPasswordSetup) {
+      return (
+        <LoginPage
+          onBack={() => navigate('/')}
+          onLoginSuccess={handleLoginSuccess}
+          pendingOtpEmail={pendingOtpEmail}
+          requirePasswordSetup
+        />
+      );
+    }
     return (
       <Routes>
         <Route
@@ -253,7 +283,14 @@ export default function App() {
         />
         <Route
           path="/login"
-          element={<LoginPage onBack={() => navigate('/')} onLoginSuccess={handleLoginSuccess} />}
+          element={
+            <LoginPage
+              onBack={() => navigate('/')}
+              onLoginSuccess={handleLoginSuccess}
+              pendingOtpEmail={pendingOtpEmail}
+              requirePasswordSetup={requireOtpPasswordSetup}
+            />
+          }
         />
         <Route
           path="/join"
