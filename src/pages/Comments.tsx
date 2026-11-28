@@ -31,10 +31,10 @@ export default function Comments() {
   const [replyText, setReplyText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchComments = async () => {
+  const fetchComments = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const data = await contentService.getMyComments();
+      const data = await contentService.getMyComments(forceRefresh);
       // Group by top-level vs replies (optional, usually dashboard just shows them straight)
       // We will just show them straight but maybe indent replies later.
       setComments(data);
@@ -52,10 +52,10 @@ export default function Comments() {
     const channel = supabase
       .channel('creator-comments-dash')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'Comment' }, () => {
-        fetchComments();
+        fetchComments(true);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'CommentVote' }, () => {
-        fetchComments();
+        fetchComments(true);
       })
       .subscribe();
       
@@ -104,7 +104,7 @@ export default function Comments() {
       await contentService.deleteComment(id);
     } catch (e) {
       console.error(e);
-      fetchComments(); // rollback
+      fetchComments(true); // rollback
     }
   };
 

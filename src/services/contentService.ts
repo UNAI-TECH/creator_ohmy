@@ -539,35 +539,19 @@ export const contentService = {
 
     const { data, error } = await supabase
       .from('Post')
-      .select('*, Vote(type), Comment(id, content), PostView(id), Save(id)')
+      .select('id, title, subtitle, short_description, content, content_json, type, language, slug, category, custom_category, thumbnail, videoUrl, videoDuration, status, scheduledFor, published_at, is_active, translation_group_id, createdAt, updatedAt, views_count, likes_count, comments_count, saves_count, shares_count')
       .eq('authorId', user.id)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
-    const postIds = (data || []).map((p: any) => p.id);
-    const shareCountByPost: Record<string, number> = {};
-    if (postIds.length > 0) {
-      try {
-        const { data: shareRows } = await supabase
-          .from('post_shares')
-          .select('post_id')
-          .in('post_id', postIds);
-        (shareRows || []).forEach((s: any) => {
-          shareCountByPost[s.post_id] = (shareCountByPost[s.post_id] || 0) + 1;
-        });
-      } catch (_) {}
-    }
-
     const result = (data || []).map((post: any) => {
-      const likes = post.Vote?.filter((v: any) => v.type === 1).length || 0;
-      const dislikes = post.Vote?.filter((v: any) => v.type === -1).length || 0;
-      const views = Math.max(post.views_count || 0, post.PostView?.length || 0);
-      const allComments = post.Comment || [];
-      const realComments = allComments.filter((c: any) => c.content !== '[SYSTEM_REPOST]').length;
-      const reposts = allComments.filter((c: any) => c.content === '[SYSTEM_REPOST]').length;
-      const saves = Math.max(post.saves_count || 0, post.Save?.length || 0);
-      const shares = Math.max(post.shares_count || 0, reposts + (shareCountByPost[post.id] || 0));
+      const likes = Number(post.likes_count || 0);
+      const dislikes = 0;
+      const views = Number(post.views_count || 0);
+      const realComments = Number(post.comments_count || 0);
+      const saves = Number(post.saves_count || 0);
+      const shares = Number(post.shares_count || 0);
 
       return {
         id: post.id,
@@ -617,48 +601,29 @@ export const contentService = {
 
     const { data: posts, error } = await supabase
       .from('Post')
-      .select('id, type, views_count, saves_count, shares_count, Vote(type), Comment(id, content), PostView(id), Save(id)')
+      .select('id, type, views_count, likes_count, comments_count, saves_count, shares_count')
       .eq('authorId', user.id);
 
     if (error) throw error;
 
     const allPosts = posts || [];
-    const postIds = allPosts.map((p: any) => p.id);
-    const shareCountByPost: Record<string, number> = {};
-    if (postIds.length > 0) {
-      try {
-        const { data: shareRows } = await supabase
-          .from('post_shares')
-          .select('post_id')
-          .in('post_id', postIds);
-        (shareRows || []).forEach((s: any) => {
-          shareCountByPost[s.post_id] = (shareCountByPost[s.post_id] || 0) + 1;
-        });
-      } catch (_) {}
-    }
 
     let totalVotes = 0;
     let totalLikes = 0;
-    let totalDislikes = 0;
+    const totalDislikes = 0;
     let totalComments = 0;
     let totalPostViews = 0;
     let totalSaves = 0;
     let totalShares = 0;
 
     allPosts.forEach((p: any) => {
-      const likes = p.Vote?.filter((v: any) => v.type === 1).length || 0;
-      const dislikes = p.Vote?.filter((v: any) => v.type === -1).length || 0;
-      const allC = p.Comment || [];
-      const realComments = allC.filter((c: any) => c.content !== '[SYSTEM_REPOST]').length;
-      const reposts = allC.filter((c: any) => c.content === '[SYSTEM_REPOST]').length;
-
+      const likes = Number(p.likes_count || 0);
       totalLikes += likes;
-      totalDislikes += dislikes;
-      totalVotes += likes - dislikes;
-      totalComments += realComments;
-      totalPostViews += Math.max(p.views_count || 0, p.PostView?.length || 0);
-      totalSaves += Math.max(p.saves_count || 0, p.Save?.length || 0);
-      totalShares += Math.max(p.shares_count || 0, reposts + (shareCountByPost[p.id] || 0));
+      totalVotes += likes;
+      totalComments += Number(p.comments_count || 0);
+      totalPostViews += Number(p.views_count || 0);
+      totalSaves += Number(p.saves_count || 0);
+      totalShares += Number(p.shares_count || 0);
     });
 
     const { count: followerCount } = await supabase
@@ -685,14 +650,16 @@ export const contentService = {
     return stats;
   },
 
-  async getMyComments(): Promise<CreatorComment[]> {
+  async getMyComments(forceRefresh = false): Promise<CreatorComment[]> {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
     const commentsCacheKey = `creator:comments:${user.id}`;
-    const cached = getMemCache<CreatorComment[]>(commentsCacheKey);
-    if (cached) return cached;
+    if (!forceRefresh) {
+      const cached = getMemCache<CreatorComment[]>(commentsCacheKey);
+      if (cached) return cached;
+    }
 
     const { data: myPosts } = await supabase
       .from('Post')
@@ -745,14 +712,27 @@ export const contentService = {
       .update({ creatorLiked: !currentHeartState })
       .eq('id', commentId);
     if (error) throw error;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) invalidateMemCache(`creator:comments:${session.user.id}`);
   },
 
   async deleteComment(commentId: string) {
-    const { error } = await supabase
+    await supabase.from('Comment').delete().eq('parentId', commentId);
+    const { data, error } = await supabase
       .from('Comment')
       .delete()
-      .eq('id', commentId);
+      .eq('id', commentId)
+      .select('id');
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('Could not delete comment or permission denied.');
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      invalidateMemCache(`creator:comments:${session.user.id}`);
+      invalidateMemCache(`creator:posts:${session.user.id}`);
+      invalidateMemCache(`creator:stats:${session.user.id}`);
+    }
   },
 
   async replyToComment(postId: string, parentId: string, content: string) {
