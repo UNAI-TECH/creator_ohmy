@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { AuthIllustration } from '../components/AuthIllustrations';
 
@@ -11,6 +11,7 @@ interface LoginPageProps {
 export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -128,7 +129,7 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
               <div className="flex items-center bg-[#F3F4F6] border border-[#E5E7EB] focus-within:border-[#D4191F] focus-within:bg-white rounded-xl h-[52px] px-3.5 transition-colors">
                 <Lock size={18} className="text-[#18181B] mr-2.5 shrink-0" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -136,6 +137,14 @@ export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
                   placeholder="Your Password"
                   disabled={loading}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="ml-2 text-gray-500 hover:text-gray-900 p-1 rounded-md focus:outline-none"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
 
               {error && (

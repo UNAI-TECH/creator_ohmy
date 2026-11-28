@@ -42,7 +42,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useToast } from '../context/ToastContext';
 import { cn } from '../lib/utils';
 
-type InspectorTab = 'publish' | 'taxonomy' | 'seo' | 'revisions';
+type InspectorTab = 'taxonomy' | 'seo' | 'publish' | 'revisions';
 type PreviewMode = 'edit' | 'desktop' | 'mobile';
 
 export default function EditorPage({ userProfile }: { userProfile?: any }) {
@@ -60,7 +60,7 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
   const [saveStateLabel, setSaveStateLabel] = useState('Not saved yet');
   const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
 
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('publish');
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('taxonomy');
   const [previewMode, setPreviewMode] = useState<PreviewMode>('edit');
   const [showFeaturedPicker, setShowFeaturedPicker] = useState(false);
   const [showOgPicker, setShowOgPicker] = useState(false);
@@ -226,6 +226,24 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
     };
 
     loadPost();
+
+    const postChannel = supabase
+      .channel(`editor-post-realtime-${targetId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'Post', filter: `id=eq.${targetId}` },
+        (payload) => {
+          const updated = payload?.new as any;
+          if (!updated) return;
+          if (updated.status) setStatus(updated.status as PostStatusUpper);
+          if (updated.updatedAt) setLoadedUpdatedAt(updated.updatedAt);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(postChannel);
+    };
   }, [paramPostId]);
 
   // Refresh linkable opposite-language posts
@@ -337,6 +355,11 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
       error(`Slug "${slug}" already exists in ${language === 'en' ? 'English' : 'Tamil'}. Change the slug before saving.`);
       return null;
     }
+    if (!opts.silent && thumbnail.trim() && !featuredCredit.trim()) {
+      error('Image Source is mandatory when a featured image is selected.');
+      setInspectorTab('taxonomy');
+      return null;
+    }
     if (targetStatus === 'PUBLISHED') {
       if (!contentHtml.replace(/<[^>]+>/g, '').trim() && postType !== 'video') {
         error('Article body cannot be empty when publishing.');
@@ -344,10 +367,16 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
       }
       if (!thumbnail.trim()) {
         error('Featured image is required before publishing.');
+        setInspectorTab('taxonomy');
         return null;
       }
       if (thumbnail.trim() && !featuredAlt.trim()) {
         error('Please provide Featured Image Alt Text for SEO & accessibility before publishing.');
+        setInspectorTab('taxonomy');
+        return null;
+      }
+      if (!featuredCredit.trim()) {
+        error('Image Source is mandatory before publishing.');
         setInspectorTab('taxonomy');
         return null;
       }
@@ -403,7 +432,7 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
         video_duration: videoDuration.trim() || undefined,
         status: targetStatus,
         scheduledFor: targetStatus === 'SCHEDULED' ? new Date(scheduledFor).toISOString() : undefined,
-        is_active: true,
+        is_active: targetStatus !== 'ARCHIVED',
         author_name: authorName.trim() || undefined,
         author_position: authorPosition.trim() || undefined,
         translation_group_id: translationGroupId,
@@ -593,9 +622,9 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
 
   return (
     <div className="max-w-[1600px] mx-auto pb-14 w-full">
-      {/* Top Sticky Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-gray-200 bg-white sticky top-0 z-20 pt-1">
-        <div className="flex items-center gap-3">
+      {/* Top Sticky Action Bar (full-bleed opaque backdrop so preview never bleeds behind) */}
+      <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white border-b border-gray-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={() => navigate('/content')}
@@ -663,16 +692,28 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
             Save Draft
           </button>
 
-          {postId && status !== 'ARCHIVED' && (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => performSave('ARCHIVED')}
-              className="px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <Archive size={14} />
-              Archive
-            </button>
+          {postId && (
+            status !== 'ARCHIVED' ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => performSave('ARCHIVED')}
+                className="px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Archive size={14} />
+                Archive
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => performSave('DRAFT', { createRevision: false })}
+                className="px-3.5 py-2 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RotateCcw size={14} />
+                Unarchive
+              </button>
+            )
           )}
 
           <button
@@ -978,12 +1019,12 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
         </div>
 
         {/* Right Editorial Inspector Rail */}
-        <aside className="xl:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden sticky top-20">
+        <aside className="xl:col-span-4 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden xl:sticky xl:top-20">
           <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 text-[11px] font-bold">
             {[
-              { id: 'publish', label: 'Publish', icon: Send },
               { id: 'taxonomy', label: 'Media/Tags', icon: ImageIcon },
               { id: 'seo', label: 'SEO', icon: Globe },
+              { id: 'publish', label: 'Publish', icon: Send },
               { id: 'revisions', label: 'History', icon: History },
             ].map((t) => (
               <button
@@ -1183,26 +1224,22 @@ export default function EditorPage({ userProfile }: { userProfile?: any }) {
                     placeholder="Alt text (required for publishing)"
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none"
                   />
-                  <input
-                    type="text"
-                    value={featuredCaption}
-                    onChange={(e) => {
-                      setFeaturedCaption(e.target.value);
-                      markDirty();
-                    }}
-                    placeholder="Caption (optional)"
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={featuredCredit}
-                    onChange={(e) => {
-                      setFeaturedCredit(e.target.value);
-                      markDirty();
-                    }}
-                    placeholder="Photo credit (optional)"
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none"
-                  />
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                      Image Source *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={featuredCredit}
+                      onChange={(e) => {
+                        setFeaturedCredit(e.target.value);
+                        markDirty();
+                      }}
+                      placeholder="Image source * (e.g., Reuters, PTI, Staff)"
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-[#D4191F] rounded-xl text-xs outline-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Categories */}
