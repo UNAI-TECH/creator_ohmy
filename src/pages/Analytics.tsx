@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Eye,
@@ -8,7 +8,8 @@ import {
   FileText,
   Languages,
   BarChart2,
-  Aperture,
+  Bookmark,
+  Share2,
   Loader2,
   ExternalLink,
 } from 'lucide-react';
@@ -20,12 +21,12 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
-  AreaChart,
-  Area,
+  Legend,
 } from 'recharts';
 import { cn } from '../lib/utils';
 import { contentService } from '../services/contentService';
 import { useToast } from '../context/ToastContext';
+import { invalidateMemCache } from '../lib/cache';
 
 type RangeKey = '7d' | '28d' | '90d' | 'all';
 
@@ -36,8 +37,8 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
-  const loadAnalytics = async (selectedRange: RangeKey) => {
-    setLoading(true);
+  const loadAnalytics = useCallback(async (selectedRange: RangeKey, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const now = new Date();
       let fromIso: string | undefined;
@@ -54,15 +55,25 @@ export default function Analytics() {
       const res = await contentService.getCreatorAnalytics(fromIso, now.toISOString());
       setData(res);
     } catch (e: any) {
-      error(e?.message || 'Failed to load creator analytics');
+      if (!silent) error(e?.message || 'Failed to load creator analytics');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [error]);
 
   useEffect(() => {
-    loadAnalytics(range);
-  }, [range]);
+    loadAnalytics(range, false);
+
+    const sub = contentService.subscribeToMyPostUpdates(() => {
+      invalidateMemCache('creator:stats:');
+      invalidateMemCache('creator:posts:');
+      loadAnalytics(range, true);
+    });
+
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [range, loadAnalytics]);
 
   const summary = data?.summary || {};
   const viewsSeries = Array.isArray(data?.viewsSeries) ? data.viewsSeries : [];
@@ -73,12 +84,18 @@ export default function Analytics() {
     <div className="max-w-[1600px] mx-auto pb-12 w-full animate-in fade-in duration-300 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <BarChart2 className="text-[#D4191F]" size={24} />
-            Channel Analytics
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
+              <BarChart2 className="text-[#D4191F]" size={24} />
+              Channel Bar Analytics
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              REALTIME
+            </span>
+          </div>
           <p className="text-xs text-gray-500 mt-1">
-            Authoritative view, reaction, story, and bilingual coverage metrics computed from PostgreSQL.
+            Live views, followers, saves, shares, and category performance synchronized in real time.
           </p>
         </div>
 
@@ -111,13 +128,14 @@ export default function Analytics() {
       ) : (
         <>
           {/* KPI Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {[
               { label: 'Article Views', value: summary.totalViews ?? 0, icon: Eye, color: 'text-[#D4191F]' },
-              { label: 'Total Likes', value: summary.totalLikes ?? 0, icon: ThumbsUp, color: 'text-emerald-600' },
-              { label: 'Comments', value: summary.totalComments ?? 0, icon: MessageSquare, color: 'text-blue-600' },
               { label: 'Followers', value: summary.totalFollowers ?? 0, icon: Users, color: 'text-purple-600' },
-              { label: 'Story Views', value: summary.storyViews ?? 0, icon: Aperture, color: 'text-amber-600' },
+              { label: 'Total Saves', value: summary.totalSaves ?? 0, icon: Bookmark, color: 'text-amber-600' },
+              { label: 'Total Shares', value: summary.totalShares ?? 0, icon: Share2, color: 'text-blue-600' },
+              { label: 'Total Likes', value: summary.totalLikes ?? 0, icon: ThumbsUp, color: 'text-emerald-600' },
+              { label: 'Comments', value: summary.totalComments ?? 0, icon: MessageSquare, color: 'text-indigo-600' },
               {
                 label: 'Published (EN/TA)',
                 value: `${summary.englishCount ?? 0} / ${summary.tamilCount ?? 0}`,
@@ -136,12 +154,12 @@ export default function Analytics() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Daily Views Timeseries */}
+            {/* Daily Bar Analytics (Views, Saves & Shares) */}
             <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">Daily Deduplicated Views</h2>
-                  <p className="text-xs text-gray-500">Tracked via server-side PostView recording</p>
+                  <h2 className="text-base font-bold text-gray-900">Daily Views, Saves &amp; Shares (Bar Chart)</h2>
+                  <p className="text-xs text-gray-500">Realtime reader engagement breakdown across selected window</p>
                 </div>
                 <span className="text-xs font-bold text-gray-500">
                   {summary.publishedPosts ?? 0} published · {summary.draftPosts ?? 0} drafts · {summary.scheduledPosts ?? 0} scheduled
@@ -149,49 +167,48 @@ export default function Analytics() {
               </div>
 
               {viewsSeries.length === 0 ? (
-                <div className="h-[280px] flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl">
+                <div className="h-[290px] flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl">
                   <BarChart2 size={28} className="mb-2 text-gray-300" />
-                  <p className="text-xs font-medium">No view activity recorded in this window yet.</p>
+                  <p className="text-xs font-medium">No activity recorded in this window yet.</p>
                 </div>
               ) : (
-                <div className="h-[280px] w-full">
+                <div className="h-[290px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={viewsSeries} margin={{ top: 10, right: 16, left: -12, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#D4191F" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#D4191F" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                      <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                      <RechartsTooltip />
-                      <Area type="monotone" dataKey="views" stroke="#D4191F" strokeWidth={2.5} fill="url(#viewsGrad)" />
-                    </AreaChart>
+                    <BarChart data={viewsSeries} margin={{ top: 10, right: 16, left: -12, bottom: 0 }} barGap={4}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                      <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                      <RechartsTooltip
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
+                      <Bar dataKey="views" name="Views" fill="#D4191F" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="saves" name="Saves" fill="#F59E0B" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="shares" name="Shares" fill="#2563EB" radius={[5, 5, 0, 0]} maxBarSize={28} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               )}
             </div>
 
-            {/* Category Breakdown */}
+            {/* Category Breakdown Bar UI */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
               <h2 className="text-base font-bold text-gray-900 mb-1">Views by Category</h2>
               <p className="text-xs text-gray-500 mb-4">Top categories across your published work</p>
 
               {byCategory.length === 0 ? (
-                <div className="h-[280px] flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded-xl">
+                <div className="h-[290px] flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded-xl">
                   No category data yet.
                 </div>
               ) : (
-                <div className="h-[280px] w-full">
+                <div className="h-[290px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={byCategory.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 16, left: 10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
                       <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                       <YAxis type="category" dataKey="name" width={85} tick={{ fontSize: 11, fill: '#374151' }} />
                       <RechartsTooltip />
-                      <Bar dataKey="views" fill="#141414" radius={[0, 6, 6, 0]} />
+                      <Bar dataKey="views" name="Views" fill="#141414" radius={[0, 6, 6, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -228,8 +245,10 @@ export default function Analytics() {
                       </div>
                       <p className="text-sm font-bold text-gray-900 truncate">{p.title}</p>
                     </div>
-                    <div className="flex items-center gap-5 text-xs font-semibold text-gray-600 shrink-0">
-                      <span className="flex items-center gap-1"><Eye size={13} /> {p.views_count || 0}</span>
+                    <div className="flex items-center gap-4 text-xs font-semibold text-gray-600 shrink-0">
+                      <span className="flex items-center gap-1"><Eye size={13} className="text-[#D4191F]" /> {p.views_count || 0}</span>
+                      <span className="flex items-center gap-1"><Bookmark size={13} className="text-amber-600" /> {p.saves_count || 0}</span>
+                      <span className="flex items-center gap-1"><Share2 size={13} className="text-blue-600" /> {p.shares_count || 0}</span>
                       <span className="flex items-center gap-1"><ThumbsUp size={13} /> {p.likes_count || 0}</span>
                       <span className="flex items-center gap-1"><MessageSquare size={13} /> {p.comments_count || 0}</span>
                       <ExternalLink size={14} className="text-gray-400" />

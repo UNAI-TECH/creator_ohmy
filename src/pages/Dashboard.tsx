@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
-  AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
   Eye, FileText, Newspaper, Video, Users, ThumbsUp, ThumbsDown,
-  MessageSquare, TrendingUp, Plus, Bell, ChevronLeft, ChevronRight, ArrowRight
+  MessageSquare, TrendingUp, Plus, Bell, ChevronLeft, ChevronRight, ArrowRight,
+  Bookmark, Share2
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { contentService, CreatorPost, CreatorStats } from '../services/contentService';
@@ -62,11 +63,10 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
   const [recentComments, setRecentComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [calendarDate, setCalendarDate] = useState(() => new Date());
-  const lastFetchTime = useRef<number>(0);
-  const MIN_REFETCH_INTERVAL = 5000;
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     try {
       const [statsData, posts, comments] = await Promise.all([
         contentService.getMyStats(),
@@ -77,34 +77,39 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
       setAllPosts(posts);
       setRecentPosts(posts.slice(0, 5));
       setRecentComments(comments.slice(0, 3));
-      lastFetchTime.current = Date.now();
     } catch (e) {
       console.warn('Dashboard fetch error:', e);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
 
     const sub = contentService.subscribeToMyPostUpdates(() => {
       invalidateMemCache('creator:stats:');
       invalidateMemCache('creator:posts:');
       invalidateMemCache('creator:comments:');
 
-      if (Date.now() - lastFetchTime.current >= MIN_REFETCH_INTERVAL) {
-        fetchData();
-      }
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = setTimeout(() => {
+        fetchData(false);
+      }, 300);
     });
 
-    return () => { sub.unsubscribe(); };
-  }, []);
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      sub.unsubscribe();
+    };
+  }, [fetchData]);
 
   const chartData = recentPosts.slice(0, 7).reverse().map(p => ({
-    name: new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    name: p.title.length > 14 ? `${p.title.slice(0, 14)}…` : p.title,
+    views: p.view_count || 0,
     likes: p.like_count || 0,
-    comments: p.comment_count || 0,
+    saves: p.save_count || 0,
+    shares: p.share_count || 0,
   }));
 
   // Calendar grid for publishing activity
@@ -213,14 +218,8 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
             </div>
           </div>
 
-          {/* 2x2 Channel KPI Summary Cards */}
-          <div className="grid grid-cols-2 gap-3.5">
-            <StatCard
-              icon={FileText}
-              label="Total Content"
-              value={formatNumber(stats?.totalPosts || 0)}
-              accent="black"
-            />
+          {/* Channel KPI Summary Cards (Realtime Views, Followers, Saves, Shares, Content, Comments) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-3.5">
             <StatCard
               icon={Eye}
               label="Total Views"
@@ -228,16 +227,34 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
               accent="red"
             />
             <StatCard
-              icon={MessageSquare}
-              label="Comments"
-              value={formatNumber(stats?.totalComments || 0)}
-              accent="red"
-            />
-            <StatCard
               icon={Users}
               label="Followers"
               value={formatNumber(stats?.totalFollowers || 0)}
               accent="black"
+            />
+            <StatCard
+              icon={Bookmark}
+              label="Saves"
+              value={formatNumber(stats?.totalSaves || 0)}
+              accent="red"
+            />
+            <StatCard
+              icon={Share2}
+              label="Shares"
+              value={formatNumber(stats?.totalShares || 0)}
+              accent="black"
+            />
+            <StatCard
+              icon={FileText}
+              label="Total Content"
+              value={formatNumber(stats?.totalPosts || 0)}
+              accent="black"
+            />
+            <StatCard
+              icon={MessageSquare}
+              label="Comments"
+              value={formatNumber(stats?.totalComments || 0)}
+              accent="red"
             />
           </div>
 
@@ -322,64 +339,71 @@ export default function Dashboard({ onCreateClick, onNavigate }: DashboardProps)
           <div className="bg-[#F7F7FA] rounded-2xl border border-gray-100 p-5 sm:p-6 flex flex-col gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <h3 className="text-base font-bold text-[#141414]">Engagement overview</h3>
-                <span className="text-xs text-gray-500">Based on recent posts</span>
+                <h3 className="text-base font-bold text-[#141414]">Engagement &amp; Distribution Bar Analytics</h3>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  LIVE
+                </span>
               </div>
               {onNavigate && (
                 <button
-                  onClick={() => onNavigate('Content')}
+                  onClick={() => onNavigate('Analytics')}
                   className="px-3.5 py-1.5 rounded-full bg-[#D4191F] hover:bg-[#9E1111] text-white text-xs font-bold transition-colors"
                 >
-                  Manage Posts
+                  Full Bar Analytics
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
-                <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-xs">
+                <div className="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
                   <ThumbsUp className="w-3.5 h-3.5 text-[#D4191F]" /> Likes
                 </div>
-                <div className="text-2xl font-bold text-[#141414] mt-1.5">{formatNumber(stats?.totalLikes || 0)}</div>
+                <div className="text-xl font-bold text-[#141414] mt-1">{formatNumber(stats?.totalLikes || 0)}</div>
               </div>
-              <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
-                <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
-                  <ThumbsDown className="w-3.5 h-3.5 text-[#141414]" /> Dislikes
+              <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-xs">
+                <div className="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
+                  <Bookmark className="w-3.5 h-3.5 text-[#141414]" /> Saves
                 </div>
-                <div className="text-2xl font-bold text-[#141414] mt-1.5">{formatNumber(stats?.totalDislikes || 0)}</div>
+                <div className="text-xl font-bold text-[#141414] mt-1">{formatNumber(stats?.totalSaves || 0)}</div>
               </div>
-              <div className="p-4 bg-white rounded-xl border border-gray-100 shadow-xs">
-                <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
-                  <MessageSquare className="w-3.5 h-3.5 text-[#D4191F]" /> Comments
+              <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-xs">
+                <div className="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5 text-[#2563EB]" /> Shares
                 </div>
-                <div className="text-2xl font-bold text-[#141414] mt-1.5">{formatNumber(stats?.totalComments || 0)}</div>
+                <div className="text-xl font-bold text-[#141414] mt-1">{formatNumber(stats?.totalShares || 0)}</div>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-xs">
+                <div className="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
+                  <ThumbsDown className="w-3.5 h-3.5 text-gray-500" /> Dislikes
+                </div>
+                <div className="text-xl font-bold text-[#141414] mt-1">{formatNumber(stats?.totalDislikes || 0)}</div>
               </div>
             </div>
 
             {chartData.length > 0 ? (
-              <div className="bg-white rounded-xl border border-gray-100 p-4 h-[230px] w-full relative" style={{ minHeight: '230px' }}>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 h-[250px] w-full relative" style={{ minHeight: '250px' }}>
                 <ResponsiveContainer width="99%" height="100%" debounce={1} minWidth={0} minHeight={0}>
-                  <AreaChart data={chartData} margin={{ top: 8, right: 6, left: -12, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorLikesRed" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#D4191F" stopOpacity={0.22} />
-                        <stop offset="95%" stopColor="#D4191F" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+                  <BarChart data={chartData} margin={{ top: 10, right: 8, left: -16, bottom: 0 }} barGap={4}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} dy={8} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} dy={6} />
+                    <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
                     <Tooltip
                       contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', boxShadow: '0 8px 20px rgba(0,0,0,0.08)' }}
-                      itemStyle={{ fontWeight: 600 }}
+                      itemStyle={{ fontWeight: 600, fontSize: 12 }}
                     />
-                    <Area type="monotone" dataKey="likes" stroke="#D4191F" strokeWidth={2.5} fillOpacity={1} fill="url(#colorLikesRed)" name="Likes" />
-                    <Area type="monotone" dataKey="comments" stroke="#141414" strokeWidth={2} fillOpacity={0.06} fill="#141414" name="Comments" />
-                  </AreaChart>
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                    <Bar dataKey="views" name="Views" fill="#D4191F" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                    <Bar dataKey="likes" name="Likes" fill="#141414" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                    <Bar dataKey="saves" name="Saves" fill="#F59E0B" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                    <Bar dataKey="shares" name="Shares" fill="#2563EB" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-100 h-36 flex items-center justify-center text-gray-400 text-sm">
-                No data yet. Publish content to see your engagement chart.
+                No data yet. Publish content to see your bar analytics.
               </div>
             )}
           </div>

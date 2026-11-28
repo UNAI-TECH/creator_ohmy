@@ -68,6 +68,8 @@ export interface CreatorPost {
   dislike_count: number;
   view_count: number;
   comment_count: number;
+  save_count: number;
+  share_count: number;
   visibility: string;
 }
 
@@ -133,6 +135,8 @@ export interface CreatorStats {
   totalLikes: number;
   totalDislikes: number;
   totalFollowers: number;
+  totalSaves: number;
+  totalShares: number;
   blogCount: number;
   newsCount: number;
   videoCount: number;
@@ -532,16 +536,35 @@ export const contentService = {
 
     const { data, error } = await supabase
       .from('Post')
-      .select('*, Vote(type), Comment(id), PostView(id)')
+      .select('*, Vote(type), Comment(id, content), PostView(id), Save(id)')
       .eq('authorId', user.id)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
+    const postIds = (data || []).map((p: any) => p.id);
+    const shareCountByPost: Record<string, number> = {};
+    if (postIds.length > 0) {
+      try {
+        const { data: shareRows } = await supabase
+          .from('post_shares')
+          .select('post_id')
+          .in('post_id', postIds);
+        (shareRows || []).forEach((s: any) => {
+          shareCountByPost[s.post_id] = (shareCountByPost[s.post_id] || 0) + 1;
+        });
+      } catch (_) {}
+    }
+
     const result = (data || []).map((post: any) => {
       const likes = post.Vote?.filter((v: any) => v.type === 1).length || 0;
       const dislikes = post.Vote?.filter((v: any) => v.type === -1).length || 0;
       const views = Math.max(post.views_count || 0, post.PostView?.length || 0);
+      const allComments = post.Comment || [];
+      const realComments = allComments.filter((c: any) => c.content !== '[SYSTEM_REPOST]').length;
+      const reposts = allComments.filter((c: any) => c.content === '[SYSTEM_REPOST]').length;
+      const saves = Math.max(post.saves_count || 0, post.Save?.length || 0);
+      const shares = Math.max(post.shares_count || 0, reposts + (shareCountByPost[post.id] || 0));
 
       return {
         id: post.id,
@@ -569,7 +592,9 @@ export const contentService = {
         like_count: likes,
         dislike_count: dislikes,
         view_count: views,
-        comment_count: post.Comment?.length || 0,
+        comment_count: realComments,
+        save_count: saves,
+        share_count: shares,
         visibility: post.status === 'PUBLISHED' && post.is_active !== false ? 'Public' : post.status || 'Draft',
       };
     });
@@ -589,26 +614,48 @@ export const contentService = {
 
     const { data: posts, error } = await supabase
       .from('Post')
-      .select('id, type, views_count, Vote(type), Comment(id), PostView(id)')
+      .select('id, type, views_count, saves_count, shares_count, Vote(type), Comment(id, content), PostView(id), Save(id)')
       .eq('authorId', user.id);
 
     if (error) throw error;
 
     const allPosts = posts || [];
+    const postIds = allPosts.map((p: any) => p.id);
+    const shareCountByPost: Record<string, number> = {};
+    if (postIds.length > 0) {
+      try {
+        const { data: shareRows } = await supabase
+          .from('post_shares')
+          .select('post_id')
+          .in('post_id', postIds);
+        (shareRows || []).forEach((s: any) => {
+          shareCountByPost[s.post_id] = (shareCountByPost[s.post_id] || 0) + 1;
+        });
+      } catch (_) {}
+    }
+
     let totalVotes = 0;
     let totalLikes = 0;
     let totalDislikes = 0;
     let totalComments = 0;
     let totalPostViews = 0;
+    let totalSaves = 0;
+    let totalShares = 0;
 
     allPosts.forEach((p: any) => {
       const likes = p.Vote?.filter((v: any) => v.type === 1).length || 0;
       const dislikes = p.Vote?.filter((v: any) => v.type === -1).length || 0;
+      const allC = p.Comment || [];
+      const realComments = allC.filter((c: any) => c.content !== '[SYSTEM_REPOST]').length;
+      const reposts = allC.filter((c: any) => c.content === '[SYSTEM_REPOST]').length;
+
       totalLikes += likes;
       totalDislikes += dislikes;
       totalVotes += likes - dislikes;
-      totalComments += p.Comment?.length || 0;
+      totalComments += realComments;
       totalPostViews += Math.max(p.views_count || 0, p.PostView?.length || 0);
+      totalSaves += Math.max(p.saves_count || 0, p.Save?.length || 0);
+      totalShares += Math.max(p.shares_count || 0, reposts + (shareCountByPost[p.id] || 0));
     });
 
     const { count: followerCount } = await supabase
@@ -624,6 +671,8 @@ export const contentService = {
       totalLikes,
       totalDislikes,
       totalFollowers: followerCount || 0,
+      totalSaves,
+      totalShares,
       blogCount: allPosts.filter((p: any) => p.type === 'BLOG').length,
       newsCount: allPosts.filter((p: any) => p.type === 'NEWS').length,
       videoCount: allPosts.filter((p: any) => p.type === 'VIDEO').length,
@@ -941,27 +990,45 @@ export const contentService = {
     const user = session?.user;
     if (!user) throw new Error('Not authenticated');
 
-    const { data, error } = await supabase.rpc('get_creator_analytics', {
-      p_creator_id: user.id,
-      ...(fromIso ? { p_from: fromIso } : {}),
-      ...(toIso ? { p_to: toIso } : {}),
-    });
+    const [{ data, error }, liveStats] = await Promise.all([
+      supabase.rpc('get_creator_analytics', {
+        p_creator_id: user.id,
+        ...(fromIso ? { p_from: fromIso } : {}),
+        ...(toIso ? { p_to: toIso } : {}),
+      }),
+      this.getMyStats().catch(() => null),
+    ]);
     if (error) throw error;
-    return data;
+
+    const summary = {
+      ...(data?.summary || {}),
+      totalSaves: data?.summary?.totalSaves ?? liveStats?.totalSaves ?? 0,
+      totalShares: data?.summary?.totalShares ?? liveStats?.totalShares ?? 0,
+      totalViews: Math.max(Number(data?.summary?.totalViews || 0), Number(liveStats?.totalViews || 0)),
+      totalFollowers: Math.max(Number(data?.summary?.totalFollowers || 0), Number(liveStats?.totalFollowers || 0)),
+    };
+    return {
+      ...data,
+      summary,
+    };
   },
 
   subscribeToMyPostUpdates(callback: (payload: any) => void) {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const debouncedCallback = (payload: any) => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => callback(payload), 300);
+      debounceTimer = setTimeout(() => callback(payload), 250);
     };
 
     return supabase
-      .channel('creator-post-updates')
+      .channel(`creator-live-updates-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'Vote' }, debouncedCallback)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Comment' }, debouncedCallback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Comment' }, debouncedCallback)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'Post' }, debouncedCallback)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'PostView' }, debouncedCallback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Save' }, debouncedCallback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Follow' }, debouncedCallback)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_shares' }, debouncedCallback)
       .subscribe();
   },
 };
